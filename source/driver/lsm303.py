@@ -41,7 +41,8 @@ import driver.distribution as distr
 import time
 
 __version__ = "0.1.0.0"
-CHAN_COUNT  = 1
+CHIP_NAME   = "lsm303"
+CHAN_COUNT  = const(1)
 
 # pylint: disable=bad-whitespace
 _ADDRESS_ACCEL             = const(0x19)  # (0x32 >> 1)       // 0011001x
@@ -124,7 +125,7 @@ _GAUSS_TO_NANOTESLA        = 100000.0     # Gauss to nano-Tesla multiplier
 
 # ----------------------------------------------------------------------------
 class LSM303(object):
-  """Driver for LSM303 accelerometer."""
+  """Driver for LSM303 magnetometer/accelerometer."""
 
   def __init__(self, i2c):
     """ Requires already initialized I2C instance.
@@ -145,8 +146,9 @@ class LSM303(object):
       self._mag_rate = MAGRATE_0_7
       self._isReady  = True
 
-    print("{0}: {1}.".format(self.__class__.__name__,
-                             "initialized" if self._isReady else "not found"))
+    print("[{0:7}] {1:27}: {2}"
+          .format(CHIP_NAME, "magnetometer/accelerometer",
+                  "ok" if self._isReady else "NOT FOUND"))
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   #@timed_function

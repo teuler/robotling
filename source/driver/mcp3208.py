@@ -12,7 +12,7 @@ from machine import Pin
 from driver.helpers import timed_function
 
 __version__ = "0.1.0.0"
-
+CHIP_NAME   = "mcp3208"
 CHAN_COUNT  = const(8)
 MAX_VALUE   = const(4096)
 
@@ -32,7 +32,8 @@ class MCP3208(object):
     self._pinCS = Pin(pinCS, Pin.OUT)
     self._pinCS.value(1)
     self._channelMask = 0xff
-    print("{0}: initialized.".format(self.__class__.__name__))
+    print("[{0:7}] {1:27}: ok"
+          .format(CHIP_NAME, "8-channel A/D converter"))
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   #@timed_function

@@ -17,6 +17,7 @@
 # Copyright (c) 2018 Thomas Euler
 # 2018-09-13, v1
 # ----------------------------------------------------------------------------
+import array
 from os import uname
 from machine import Pin, Signal, ADC, Timer
 from neopixel import NeoPixel
@@ -25,23 +26,26 @@ from utime import ticks_us, ticks_diff
 import robotling_board as rboard
 import driver.mcp3208 as mcp3208
 import driver.drv8835 as drv8835
-import driver.lsm303 as lsmM303
 import driver.distribution as distr
-from sensors.compass import Compass
+
+from driver.helpers import timed_function
 
 # ----------------------------------------------------------------------------
-NP_MAX_INTENS  = const(35)
-NP_MIN_INTENS  = const(0)
-NP_STEP_INTENS = const(5)
-
+NPX0_STEP_SIZE = const(5)
 TM_MIN_PERIOD  = const(20)
 
 # ----------------------------------------------------------------------------
 class Robotling():
   """Robotling main class."""
 
-  def __init__(self):
-    print("Initializing robotling board ...")
+  def __init__(self, devices=[]):
+    """ Additional onboard components can be listed in "devices" and, if known,
+        will be initialized
+    """
+    print("Robotling v{0:.2f} running MicroPython {1} ({2})"
+          .format(distr.BOARD_VER/100, distr.uPyDistr.sysInfo[2],
+                  distr.uPyDistr.sysInfo[0]))
+    print("Initializing ...")
 
     # Initialize on-board (feather) hardware
     self._p13 = Pin(rboard.RED_LED, Pin.OUT)
@@ -54,25 +58,36 @@ class Robotling():
                                          rboard.MOSI, rboard.MISO)
     self._MCP3208 = mcp3208.MCP3208(self._spi, rboard.CS_ADC)
 
-    # Initialize magnetometer and accelerometer driver
-    self._i2c = distr.uPyDistr.getI2CBus(rboard.I2C_FRQ, rboard.SCL, rboard.SDA)
-    self._LSM303 = lsmM303.LSM303(self._i2c)
-
     # Initialize motor driver
     self._motorDriver = drv8835.DRV8835(drv8835.MODE_PH_EN,
                                         rboard.A_ENAB, rboard.A_PHASE,
                                         rboard.B_ENAB, rboard.B_PHASE)
-    # Initialize compass
-    self.Compass = Compass(self._LSM303)
 
-    # Initialize Neopixel
+    # Initialize Neopixel (connector)
     self._NPx = NeoPixel(Pin(rboard.NEOPIX, Pin.OUT), 1, bpp=3)
-    self._NPx_RGB = bytearray([0]*3)
-    self._NPx_intens = NP_MIN_INTENS
-    self._NPx_step = NP_STEP_INTENS
-    self._NPx_mask = 0x02
+    self._NPx0_RGB = bytearray([0]*3)
+    self._NPx0_curr = array.array("i", [0,0,0])
+    self._NPx0_step = array.array("i", [0,0,0])
     self.NeoPixelRGB = 0
     print("NeoPixel ready.")
+
+    # Get I2C bus
+    self._i2c = distr.uPyDistr.getI2CBus(rboard.I2C_FRQ, rboard.SCL, rboard.SDA)
+
+    # Initialize further devices depending on the selected onboard components
+    # (e.g. which type of magnetometer/accelerometer/gyro, etc.)
+    if "lsm303" in devices:
+      # Magnetometer and accelerometer break-out, import drivers and
+      # initialize lsm303 and respective compass instance
+      import driver.lsm303 as lsm303
+      from sensors.compass import Compass
+      self._LSM303 = lsm303.LSM303(self._i2c)
+      self.Compass = Compass(self._LSM303)
+
+    if "compass_cmps12" in devices:
+      # Very nice compass module with tilt-compensation built in
+      from sensors.compass_cmps12 import Compass
+      self.Compass = Compass(self._i2c)
 
     # Timer for heartbeat signal via NeoPixel, sensor update and user
     # callback
@@ -98,24 +113,16 @@ class Robotling():
     """
     t = ticks_us()
 
-    # Update NeoPixel color
-    if self._tmNeoPixel:
-      self._NPx_intens += self._NPx_step
-      if self._NPx_intens > (NP_MAX_INTENS -NP_STEP_INTENS):
-        self._NPx_step = -NP_STEP_INTENS
-      if self._NPx_intens < (NP_MIN_INTENS +NP_STEP_INTENS):
-        self._NPx_step =  NP_STEP_INTENS
-      r = self._NPx_intens if (self._NPx_mask & 0x01) else 0
-      g = self._NPx_intens if (self._NPx_mask & 0x02) else 0
-      b = self._NPx_intens if (self._NPx_mask & 0x04) else 0
-      self.NeoPixelRGB = (r, g, b)
-
     # Update analog sensors
     if self._tmSensors:
       self._MCP3208.update()
 
     if self._callback:
       self._callback()
+
+    # Update NeoPixel color
+    if self._tmNeoPixel:
+      self._pulseNeoPixel()
 
     self._tm_t_sum   += ticks_diff(ticks_us(), t) /1000
     self._tm_t_count += 1
@@ -142,9 +149,9 @@ class Robotling():
     batt  = self.Battery_V
     print("Battery    : {0:.1f}V, ~{1:.0f}% charged"
           .format(batt, batt/4.2 *100))
-    tm_ms = self._tm_t_sum /self._tm_t_count
-    print("Performance: timer callback {0:6.3f}ms ({1:.0f}Hz)"
-          .format(tm_ms, 1000/tm_ms))
+    t_ms = self._tm_t_sum /self._tm_t_count
+    print("Performance: timer callback {0:6.3f}ms @ {1:.1f}Hz ~{2:.0f}%"
+          .format(t_ms, 1000/self._tmPeriod_ms, t_ms /self._tmPeriod_ms *100))
     # Measuring loop timing does currently make not much sense because
     # of the way the obstacle detection works, that is waiting until the
     # head of the robot has turned ...
@@ -177,30 +184,65 @@ class Robotling():
     self._motorDriver.setMotorSpeed()
     self.NeoPixelRGB = 0
 
-
   @property
   def Battery_V(self):
     """ Battery voltage in [V]
     """
     return self._adc_battery.read() *rboard.BAT_N_PER_V
 
-
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   @property
   def NeoPixelRGB(self):
     return self._NPx_RGB
 
   @NeoPixelRGB.setter
   def NeoPixelRGB(self, value):
-    """ Set color of NeoPixel at RBL_NEOPIX by assigning RGB values
+    """ Set color of NeoPixel at RBL_NEOPIX by assigning RGB values (and
+        stop pulsing, if running)
     """
-    rgb = self._NPx_RGB
     try:
-      if len(value) == 3:
-        rgb = value
-        self._NPx[0] = rgb
+      rgb = bytearray([value[0], value[1], value[3]])
     except TypeError:
-      rgb = (value, value, value)
+      rgb = bytearray([value]*3)
     self._NPx[0] = rgb
     self._NPx.write()
+    self._NPx0_pulse = False
+
+  def startPulseNeoPixel(self, value):
+    """ Set color of NeoPixel at RBL_NEOPIX and enable pulsing
+    """
+    try:
+      rgb = bytearray([value[0], value[1], value[2]])
+    except TypeError:
+      rgb = bytearray([value]*3)
+
+    if (rgb != self._NPx0_RGB) or not(self._NPx0_pulse):
+      # New color and start pulsing
+      c = self._NPx0_curr
+      s = self._NPx0_step
+      c[0] = rgb[0]
+      s[0] = int(rgb[0] /NPX0_STEP_SIZE)
+      c[1] = rgb[1]
+      s[1] = int(rgb[1] /NPX0_STEP_SIZE)
+      c[2] = rgb[2]
+      s[2] = int(rgb[2] /NPX0_STEP_SIZE)
+      self._NPx0_RGB = rgb
+      self._NPx[0] = rgb
+      self._NPx.write()
+      self._NPx0_pulse = True
+
+  def _pulseNeoPixel(self):
+    """ Update pulsing, if enabled
+    """
+    if self._NPx0_pulse:
+      rgb = self._NPx0_RGB
+      for i in range(3):
+        self._NPx0_curr[i] += self._NPx0_step[i]
+        if self._NPx0_curr[i] > (rgb[i] -self._NPx0_step[i]):
+          self._NPx0_step[i] *= -1
+        if self._NPx0_curr[i] < abs(self._NPx0_step[i]):
+          self._NPx0_step[i] = abs(self._NPx0_step[i])
+      self._NPx[0] = self._NPx0_curr
+      self._NPx.write()
 
 # ----------------------------------------------------------------------------

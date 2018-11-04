@@ -10,12 +10,12 @@ import utime
 from os import uname
 from micropython import const
 from machine import SPI, Pin, I2C
-#import robotling_board as rboard
+from robotling_board_version import BOARD_VER
 
 __version__ = "0.1.0.0"
 
 UPY_UNKNOWN                = const(0)
-UPY_ESP32                  = const(1) 
+UPY_ESP32                  = const(1)
 UPY_ESP32_LOBO             = const(2)
 
 # ----------------------------------------------------------------------------
@@ -29,8 +29,7 @@ class uPyDistribution(object):
     self._spi        = None
     self._i2c        = None
     self._i2cDevList = []
-
-    self.sysInfo = uname()
+    self.sysInfo     = uname()
     if self.sysInfo[0] == "esp32_LoBo":
       self._ID = UPY_ESP32_LOBO
       self._maxPWMDuty = const(100)

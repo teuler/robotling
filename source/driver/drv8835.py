@@ -10,12 +10,11 @@ import array
 from micropython import const
 from machine import Pin, PWM
 import driver.distribution as distr
-from driver.helpers import timed_function 
+from driver.helpers import timed_function
 
 __version__ = "0.1.0.0"
-
+CHIP_NAME   = "drv8835"
 CHAN_COUNT  = const(2)
-
 MODE_NONE   = const(0)
 MODE_IN_IN  = const(1)
 MODE_PH_EN  = const(2)
@@ -48,9 +47,9 @@ class DRV8835(object):
     elif mode == MODE_IN_IN:
       print("IN/IN mode not yet implemented.")
 
-    # Report back
-    print("{0}: {1}.".format(self.__class__.__name__, "initialized"
-                             if self._mode != MODE_NONE else "FAILED"))
+    print("[{0:7}] {1:27}: {2}"
+          .format(CHIP_NAME, "2-channel DC motor driver",
+                  "ok" if self._mode != MODE_NONE else "FAILED"))
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def setMotorSpeed(self, speed=[0, 0]):
@@ -76,7 +75,7 @@ class DRV8835(object):
         sp[MOTOR_B] = spNew
       BSp = abs(int(sp[MOTOR_B]/100.0 *ms))
 
-      # Stop motors, wait a moment, then change direction and set new speed
+      # Stop motors, then change direction and set new speed
       AEn(0)
       BEn(0)
       APh(sp[MOTOR_A] > 0)
