@@ -1,7 +1,7 @@
 // Visibility flags
-showBoard        = 1;
-showBattery      = 1;
-showServo        = 1;
+showBoard        = 0;
+showBattery      = 0;
+showServo        = 0;
 
 // Board
 board_xyz        = [66.0, 58.0, 1.2];
@@ -362,8 +362,9 @@ module sensor_arm()
     rh   = 1.5;
     llen = 15;
     lhei = 8;
-    lwid = 3;
-    lgro = 6;
+    loff = 1;
+    lwid = 3 +loff*2; //3
+    lgro = 3; //6
     offs = -5;
     color("gray", 0.8)
     
@@ -378,14 +379,14 @@ module sensor_arm()
                     cylinder($fn=100, h=dz, r=r);
                 }
                 translate([0, offs, 0]) {
-                    translate([-lhei/2, -lwid/2, 0])
+                    translate([-lhei/2, -lwid/2 +loff, 0])
                     cube([lhei, lwid, llen -lhei/2 +1]);
                     rotate([90, 90, 0])
                     translate([-lhei*1.2, -lwid/2, 0])
                     cube([lhei*1.2, lwid, lhei*1.2]);
                     
                     rotate([90, 0, 0])
-                    translate([0, llen -3, -lwid/2])
+                    translate([0, llen -3, -lwid/2 -loff])
                     cylinder($fn=100, h=lwid, r=lhei/2);
 
                 }
@@ -404,6 +405,10 @@ module sensor_arm()
                     translate([0, llen -3, -4])
                     cylinder($fn=100, h=8, r=1.2);
                 
+                    rotate([90, 0, 0])
+                    translate([0, llen -3, -4])
+                    cylinder($fn=100, h=4.5, r=3);
+
                     rotate([0, 90, 0])
                     translate([-10, -10, -4])  
                     cylinder($fn=100, h=8, r=8.5);
@@ -495,8 +500,10 @@ module adapter()
                     }   
                     if(h[4] > 0) {     
                         translate([x, y, adapter_dz +5])
-                        scale([1,1,0.6])
-                        sphere(8, $fn=100); 
+                        //scale([1,1,0.6])
+                        //sphere(8, $fn=100); 
+                        scale([1,1,0.7])
+                        sphere(6, $fn=100); 
                     }
                 }
             }
@@ -517,26 +524,27 @@ module adapter()
 
             rotate([0, 90, 125 +board_z_angle +45])
             translate([-13,0,15])
-            cylinder($fn=100, h=10, r=6.5); // r=6.5
+            //cylinder($fn=100, h=10, r=6.5); 
+            cylinder($fn=100, h=10, r=6); 
         }
     }
 }
 
 
 // ----------------------------------------------------------------------------------
-translate(adapt2head_offs) 
+*translate(adapt2head_offs) 
 rotate(adapt2head_rot) 
 group() {
     board(showBoard);
     battery(showBattery);
     servo(showServo);
     head();
-    sensor_arm();
+    *sensor_arm();
 }
 
-*sensor_arm();
+sensor_arm();
 
-translate([0, 0,-30]) 
+*translate([0, 0,-30]) 
 adapter();
 
 *ring();
