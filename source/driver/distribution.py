@@ -59,7 +59,7 @@ class uPyDistribution(object):
   def getI2CBus(self, _freq, scl, sda):
     if self._i2c == None:
       if self._ID == UPY_ESP32_LOBO:
-        pass
+        self._i2c = I2C(0, sda=Pin(sda), scl=Pin(scl), freq=_freq)
       elif self._ID == UPY_ESP32:
         self._i2c = I2C(scl=Pin(scl), sda=Pin(sda), freq=_freq)
 
@@ -70,8 +70,42 @@ class uPyDistribution(object):
   def i2cDevAddrList(self):
     return self._i2cDevList
 
-
 # ----------------------------------------------------------------------------
 uPyDistr = uPyDistribution()
+
+# ----------------------------------------------------------------------------
+if uPyDistr.ID == UPY_ESP32_LOBO:
+  from machine import Neopixel as NeoPixelBase
+else:
+  from neopixel import NeoPixel as NeoPixelBase
+
+class NeoPixel(object):
+  """Distribution-independent NeoPixel class"""
+
+  def __init__(self, pin, nLEDs):
+    """ Requires a pin index (not object) and the number of NeoPixels
+    """
+    self._isLoBo = uPyDistr.ID == UPY_ESP32_LOBO
+    if self._isLoBo:
+      self._NPx = NeoPixelBase(Pin(pin, Pin.OUT), 1, NeoPixelBase.TYPE_RGB)
+    else:
+      self._NPx = NeoPixelBase(Pin(pin, Pin.OUT), 1, bpp=3)
+
+  def set(self, rgb, iNP=0, show=False):
+    """ Takes an RGB value as a tupple for the NeoPixel with the index "iNP",
+        update all NeoPixels if "show"==True
+    """
+    if self._isLoBo:
+      self._NPx.set(iNP, (rgb[0] << 16) | (rgb[1] << 8) | rgb[2], 0, 1, show)
+    else:
+      self._NPx[iNP] = rgb
+      if show:
+        self._NPx.write()
+
+  def show(self):
+    if self._isLoBo:
+      self._NPx.show()
+    else:
+      self._NPx.write()
 
 # ----------------------------------------------------------------------------

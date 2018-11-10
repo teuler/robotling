@@ -132,6 +132,7 @@ class LSM303(object):
     """
     self._i2c = i2c
     self._isReady = False
+    self._isLoBo = distr.uPyDistr.ID == distr.UPY_ESP32_LOBO
 
     addrList = distr.uPyDistr.i2cDevAddrList
     if (_ADDRESS_ACCEL in addrList) and (_ADDRESS_MAG in addrList):
@@ -280,7 +281,10 @@ class LSM303(object):
   def _read_bytes(self, i2cAddr, regAddr, buf):
     cmd    = bytearray(1)
     cmd[0] = regAddr & 0xff
-    self._i2c.writeto(i2cAddr, cmd, False)
+    if self._isLoBo:
+      self._i2c.writeto(i2cAddr, cmd, stop=False)
+    else:
+      self._i2c.writeto(i2cAddr, cmd, False)  
     self._i2c.readfrom_into(i2cAddr, buf)
 
 # ----------------------------------------------------------------------------

@@ -26,7 +26,10 @@ except ImportError:
   pass
 
 # WLAN access
-from NETWORK import ssid_, wp2_pass
+try:
+  from NETWORK import ssid_, wp2_pass
+except ImportError:
+  pass
 
 def do_connect():
   import network

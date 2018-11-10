@@ -1,7 +1,7 @@
 // Visibility flags
-showBoard        = 0;
-showBattery      = 0;
-showServo        = 0;
+showBoard        = 1;
+showBattery      = 1;
+showServo        = 1;
 
 // Board
 board_xyz        = [66.0, 58.0, 1.2];
@@ -362,10 +362,10 @@ module sensor_arm()
     rh   = 1.5;
     llen = 15;
     lhei = 8;
-    loff = 1;
+    loff = 0.5;
     lwid = 3 +loff*2; //3
-    lgro = 3; //6
-    offs = -5;
+    lgro = 3.5; //6
+    offs = -4.5;
     color("gray", 0.8)
     
     translate([-52, 0, r+base_dz]) {
@@ -398,7 +398,7 @@ module sensor_arm()
                 cylinder($fn=100, h=4, r=rh);
 
                 translate([0, offs, 0]) {
-                    translate([-lgro/2, -lwid/2 +2, dz])
+                    translate([-lgro/2 , -lwid/2 +1.5, dz])
                     cube([lgro, lwid, llen]);
                 
                     rotate([90, 0, 0])
@@ -532,19 +532,19 @@ module adapter()
 
 
 // ----------------------------------------------------------------------------------
-*translate(adapt2head_offs) 
+translate(adapt2head_offs) 
 rotate(adapt2head_rot) 
 group() {
     board(showBoard);
     battery(showBattery);
     servo(showServo);
     head();
-    *sensor_arm();
+    sensor_arm();
 }
 
-sensor_arm();
+*sensor_arm();
 
-*translate([0, 0,-30]) 
+translate([0, 0,-30]) 
 adapter();
 
 *ring();

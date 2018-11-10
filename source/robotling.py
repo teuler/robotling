@@ -8,6 +8,7 @@
 # - _MCP3208       : 8-channel 12-bit A/C converter driver
 # - _LSM303        : magnetometer/accelerometer driver
 # - _motorDriver   : 2-channel DC motor driver
+# - Compass        : see sensors.compass*.py
 
 # Properties:
 # - Battery_V      : battery voltage [V]
@@ -16,21 +17,29 @@
 # The MIT License (MIT)
 # Copyright (c) 2018 Thomas Euler
 # 2018-09-13, v1
+# 2018-11-10, v1.1 compatible to Boris Lovosevic's MicroPython ESP32 port
+#
+# Open issues:
+# - NeoPixels don't yet quite as expected with the LoBo ESP32 MicroPython
+# - LSM303: While accelerometer readings are fine, computing a clear heading
+#   from the magnetometer does yet work. Potentially a hardware problem with
+#   the prototype board. In any case, the compass does not yet work.
+#   With the CMPS12 module, the compass works just fine.
+#
 # ----------------------------------------------------------------------------
 import array
 from os import uname
 from machine import Pin, Signal, ADC, Timer
-from neopixel import NeoPixel
 from micropython import const
 from utime import ticks_us, ticks_diff
 import robotling_board as rboard
 import driver.mcp3208 as mcp3208
 import driver.drv8835 as drv8835
 import driver.distribution as distr
-
 from driver.helpers import timed_function
 
-# ----------------------------------------------------------------------------
+__version__ = "0.1.1.0"
+
 NPX0_STEP_SIZE = const(5)
 TM_MIN_PERIOD  = const(20)
 
@@ -48,6 +57,7 @@ class Robotling():
     print("Initializing ...")
 
     # Initialize on-board (feather) hardware
+    self._uPyLoBo = distr.uPyDistr.ID == distr.UPY_ESP32_LOBO
     self._p13 = Pin(rboard.RED_LED, Pin.OUT)
     self.onboardLED = Signal(self._p13)
     self._adc_battery = ADC(Pin(rboard.ADC_BAT))
@@ -64,7 +74,7 @@ class Robotling():
                                         rboard.B_ENAB, rboard.B_PHASE)
 
     # Initialize Neopixel (connector)
-    self._NPx = NeoPixel(Pin(rboard.NEOPIX, Pin.OUT), 1, bpp=3)
+    self._NPx = distr.NeoPixel(rboard.NEOPIX, 1)
     self._NPx0_RGB = bytearray([0]*3)
     self._NPx0_curr = array.array("i", [0,0,0])
     self._NPx0_step = array.array("i", [0,0,0])
@@ -201,11 +211,10 @@ class Robotling():
         stop pulsing, if running)
     """
     try:
-      rgb = bytearray([value[0], value[1], value[3]])
+      rgb = bytearray([value[0], value[1], value[2]])
     except TypeError:
       rgb = bytearray([value]*3)
-    self._NPx[0] = rgb
-    self._NPx.write()
+    self._NPx.set(rgb, 0, True)
     self._NPx0_pulse = False
 
   def startPulseNeoPixel(self, value):
@@ -227,8 +236,7 @@ class Robotling():
       c[2] = rgb[2]
       s[2] = int(rgb[2] /NPX0_STEP_SIZE)
       self._NPx0_RGB = rgb
-      self._NPx[0] = rgb
-      self._NPx.write()
+      self._NPx.set(rgb, 0, True)
       self._NPx0_pulse = True
 
   def _pulseNeoPixel(self):
@@ -242,7 +250,6 @@ class Robotling():
           self._NPx0_step[i] *= -1
         if self._NPx0_curr[i] < abs(self._NPx0_step[i]):
           self._NPx0_step[i] = abs(self._NPx0_step[i])
-      self._NPx[0] = self._NPx0_curr
-      self._NPx.write()
+      self._NPx.set(self._NPx0_curr, 0, True)
 
 # ----------------------------------------------------------------------------
