@@ -1,2 +1,2 @@
-ssid_    = "YOUR NETWORK SSID"
-wp2_pass = "YOUR PASSWORD"
+ssid_    = "YOUR_NETWORK_SSID"
+wp2_pass = "YOUR_PASSWORD"
