@@ -28,8 +28,9 @@
 #
 # ----------------------------------------------------------------------------
 import array
+#from binascii import hexlify
 from os import uname
-from machine import Pin, Signal, ADC, Timer
+from machine import Pin, Signal, ADC, Timer, unique_id
 from micropython import const
 from utime import ticks_us, ticks_diff
 import robotling_board as rboard
@@ -55,6 +56,10 @@ class Robotling():
           .format(distr.BOARD_VER/100, distr.uPyDistr.sysInfo[2],
                   distr.uPyDistr.sysInfo[0]))
     print("Initializing ...")
+
+    # Define a unique ID
+    #self._ID = binascii.hexlify(unique_id())
+    #print(self._ID)
 
     # Initialize on-board (feather) hardware
     self._uPyLoBo = distr.uPyDistr.ID == distr.UPY_ESP32_LOBO

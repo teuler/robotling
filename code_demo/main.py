@@ -40,8 +40,8 @@ PIRO_MAX_ANGLE   = const(25)   # Maximal tilt (i.e. pitch/roll) allowed
                                # .. before robot responds
 # Obstacle/cliff detection
 MAX_IR_SCAN_POS  = const(3)    # Scan positions to check for obstacles/cliffs
-DIST_OBST_CM     = const(7)    # Lower distances are considered obstacles
-DIST_CLIFF_CM    = const(13)   # Farer distances are considered cliffs
+DIST_OBST_CM     = const(8)    # Lower distances are considered obstacles
+DIST_CLIFF_CM    = const(16)   # Farer distances are considered cliffs
 MIN_DIST_SERVO   = const(-30)  # Limits of servo that holds the arm with the
 MAX_DIST_SERVO   = const(45)   # .. IR distance sensor in [°]
 SCAN_DIST_SERVO  = const(-25)  # Angle of IR distance sensor arm
@@ -51,9 +51,11 @@ SCAN_DIST_SERVO  = const(-25)  # Angle of IR distance sensor arm
 TM_PERIOD        = const(50)
 
 # Default motor speeds ..
-SPEED_WALK       = const(-12)  # .. for walking forwards
-SPEED_TURN       = const(5)    # .. for turning head when changing direction
-SPEED_SCAN       = const(10)   # .. for turning head when scanning
+SPEED_WALK       = const(-18)  #  -12 .. for walking forwards
+SPEED_TURN       = const(10)   #    5 .. for turning head when changing direction
+SPEED_TURN_DELAY = const(750)  # 1500
+SPEED_BACK_DELAY = const(500)  # 1000
+SPEED_SCAN       = const(10)   #   10 .. for turning head when scanning
 
 # Robot states
 STATE_IDLE       = const(0)
@@ -158,14 +160,14 @@ class HexBug(Robotling):
     self.state = STATE_LOOKING
 
     # Move head and IR distance sensor at random, as if looking around
-    nSacc = random.randint(8,20)
+    nSacc = random.randint(4, 10)
     yaw   = 0
     pit   = SCAN_DIST_SERVO
     try:
       for i in range(nSacc):
         if r.onHold:
           break
-        dYaw = random.randint(-800,800)
+        dYaw = random.randint(-800, 800)
         yaw += dYaw
         dir  = -1 if dYaw < 0 else 1
         pit += random.randint(-10,15)
@@ -221,7 +223,7 @@ def main():
           continue
 
         # Sometines just look around
-        if random.randint(0,15) < 2:
+        if random.randint(0,15) == 0:
           r.lookAround()
           continue
 
@@ -250,7 +252,7 @@ def main():
           else:
             dir = lastDir
           r.MotorTurn.speed = SPEED_TURN *dir
-          time.sleep_ms(1500)
+          time.sleep_ms(SPEED_TURN_DELAY)
           r.MotorTurn.speed = 0
 
         else:
@@ -260,7 +262,7 @@ def main():
           r.MotorWalk.speed = 0
           time.sleep_ms(200)
           r.MotorWalk.speed = -SPEED_WALK
-          time.sleep_ms(1000)
+          time.sleep_ms(SPEED_BACK_DELAY)
           r.MotorWalk.speed = 0
           if lastDir == 0:
             dir = [-1,1][random.randint(0,1)]
@@ -269,7 +271,7 @@ def main():
             dir = lastDir
           dir = [-1,1][random.randint(0,1)]
           r.MotorTurn.speed = SPEED_TURN *dir
-          time.sleep_ms(2500)
+          time.sleep_ms(SPEED_TURN_DELAY*2)
           r.MotorTurn.speed = 0
 
     except KeyboardInterrupt:
@@ -290,22 +292,5 @@ r  = HexBug(["lsm303"])
 # Call main
 if __name__ == "__main__":
   main()
-
-"""
-try:
-  while True:
-
-    print("{0:.1f}°".format(r.Compass.getHeading()))
-    _, pitch, roll = r.Compass.getPitchRoll()
-    print("pitch={0:.1f}°, roll={1:.1f}°".format(pitch, roll))
-
-    _, head, pitch, roll = r.Compass.getHeading3D()
-    print("heading={0:.1f}°, pitch={1:.1f}°, roll={2:.1f}°"
-          .format(head, pitch, roll))
-    time.sleep_ms(1000)
-except KeyboardInterrupt:
-  print("Loop stopped.")
-"""
-
 
 # ----------------------------------------------------------------------------
