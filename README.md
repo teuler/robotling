@@ -6,4 +6,4 @@ Please find the details in the [wiki](https://github.com/teuler/robotling/wiki).
 
 ### Release Notes
 
-* 2018-10-28 - Initial release 
+* 2018-11-18 - Initial release 
