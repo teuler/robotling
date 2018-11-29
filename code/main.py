@@ -19,18 +19,19 @@
 # 2018-09-13, first release.
 # 2018-10-29, use pitch/roll to check if robot is tilted.
 # 2018-11-03, some cleaning up and commenting of the code
+# 2018-11-28, re-organised directory structure, collecting all access to
+#             hardware specifics to a set of "adapter classes" in `platform`,
 #
 # ----------------------------------------------------------------------------
 import array
-import machine
 import time
 import random
-from micropython import const, mem_info
+from micropython import const
 from robotling import Robotling
 from misc.helpers import TemporalFilter
-import robotling_board as rboard
+import robotling_board as rb
 import driver.drv8835 as drv8835
-from driver.helpers import timed_function
+from misc.helpers import timed_function
 from motors.dc_motor import DCMotor
 from motors.servo import Servo
 from sensors.sharp_ir_distance import SharpIRDistSensor_GP2Y0A41SK0F
@@ -51,11 +52,11 @@ SCAN_DIST_SERVO  = const(-25)  # Angle of IR distance sensor arm
 TM_PERIOD        = const(50)
 
 # Default motor speeds ..
-SPEED_WALK       = const(-18)  #  -12 .. for walking forwards
-SPEED_TURN       = const(10)   #    5 .. for turning head when changing direction
-SPEED_TURN_DELAY = const(750)  # 1500
-SPEED_BACK_DELAY = const(500)  # 1000
-SPEED_SCAN       = const(10)   #   10 .. for turning head when scanning
+SPEED_WALK       = const(-70)  # .. for walking forwards
+SPEED_TURN       = const(30)   # .. for turning head when changing direction
+SPEED_TURN_DELAY = const(900)  #
+SPEED_BACK_DELAY = const(500)  #
+SPEED_SCAN       = const(40)   # .. for turning head when scanning
 
 # Robot states
 STATE_IDLE       = const(0)
@@ -81,7 +82,7 @@ class HexBug(Robotling):
   def __init__(self, devices):
     super().__init__(devices)
     # Add the servo that moves the IR distance sensor up and down
-    self.ServoDistSensor = Servo(rboard.DIO0, us_range=[500, 1300],
+    self.ServoDistSensor = Servo(rb.DIO0, us_range=[500, 1300],
                                  ang_range=[MIN_DIST_SERVO, MAX_DIST_SERVO])
 
     # Add IR distance sensor and make sure that for speed reasons only the
@@ -146,7 +147,6 @@ class HexBug(Robotling):
       self._distData[iPos] = d
       o = o or (d < DIST_OBST_CM)
       c = c or (d > DIST_CLIFF_CM)
-    #print(o,c,self._distData)
     return 1 if c else -1 if o else 0
 
 
@@ -197,7 +197,6 @@ class HexBug(Robotling):
       print("{0} cm".format(self.SensorDistA.dist_cm))
       time.sleep_ms(0 if trials <= 1 else 250)
 
-
 # ----------------------------------------------------------------------------
 def main():
   # Angle the IR sensor towards floor in front
@@ -226,10 +225,6 @@ def main():
         if random.randint(0,15) == 0:
           r.lookAround()
           continue
-
-        """
-        print("{0:.1f}°".format(r.Compass.getHeading()))
-        """
 
         # Check if obstacle or cliff
         r.onTrouble = r.scanForObstacleOrCliff()
@@ -287,7 +282,6 @@ def main():
 
 # Create instance of HexBug, derived from the Robotling class
 r  = HexBug(["lsm303"])
-#r = HexBug(["compass_cmps12"])
 
 # Call main
 if __name__ == "__main__":

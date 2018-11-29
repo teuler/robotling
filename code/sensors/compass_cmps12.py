@@ -1,13 +1,11 @@
 # ----------------------------------------------------------------------------
 # compass_cmps12.py
 # Compass based on CMPS12 tilt-compensated compass driver
+# For details, see http://www.robot-electronics.co.uk/files/cmps12.pdf
 #
 # The MIT License (MIT)
 # Copyright (c) 2018 Thomas Euler
 # 2018-10-30, v1
-#
-# http://www.robot-electronics.co.uk/files/cmps12.pdf
-#
 # ----------------------------------------------------------------------------
 try:
   import struct
@@ -15,10 +13,9 @@ except ImportError:
   import ustruct as struct
 from math import radians
 from micropython import const
-from driver.helpers import timed_function
+from misc.helpers import timed_function
 from sensors.sensor_base import SensorBase
-import robotling_board as rboard
-import driver.distribution as distr
+import robotling_board as rb
 
 __version__ = "0.1.0.0"
 
@@ -63,13 +60,13 @@ class Compass(SensorBase):
   """Compass class that uses the tilt-compensated CMPS12 breakout."""
 
   def __init__(self, i2c):
-    """ Requires already initialized I2C instance.
+    """ Requires already initialized I2C bus instance.
     """
     self._i2c = i2c
     self._isReady = False
     super().__init__(None, 0)
 
-    addrList = distr.uPyDistr.i2cDevAddrList
+    addrList = self._i2c.deviceAddrList
     if (_ADDRESS_CMPS12 in addrList) and (_ADDRESS_CMPS12 in addrList):
       # Get version and initialize
       buf = bytearray(1)
@@ -95,7 +92,7 @@ class Compass(SensorBase):
         precision is 3599/360°, otherwise 255/360°.
     """
     if not self._isReady:
-      return rboard.RBL_ERR_DEVICE_NOT_READY
+      return rb.RBL_ERR_DEVICE_NOT_READY
     hd = self._heading
     if hires:
       buf = bytearray(1)
@@ -117,7 +114,7 @@ class Compass(SensorBase):
         reasons and has no effect.
     """
     if not self._isReady:
-      return (rboard.RBL_ERR_DEVICE_NOT_READY, 0, 0, 0)
+      return (rb.RBL_ERR_DEVICE_NOT_READY, 0, 0, 0)
     hd  = self._heading
     pit = self._pitch
     rol = self._roll
@@ -125,7 +122,7 @@ class Compass(SensorBase):
     self._read_bytes(_ADDRESS_CMPS12, _REG_BEARING_16BIT_HB, buf)
     hd, pit, rol = struct.unpack_from('>Hbb', buf[0:4])
     hd /= 10
-    return (rboard.RBL_OK, hd, pit, rol)
+    return (rb.RBL_OK, hd, pit, rol)
 
 
   #@timed_function
@@ -133,16 +130,16 @@ class Compass(SensorBase):
     """ Returns error code, pitch and roll in [°] as a tuple
     """
     if not self._isReady:
-      return  (rboard.RBL_ERR_DEVICE_NOT_READY, 0, 0)
+      return  (rb.RBL_ERR_DEVICE_NOT_READY, 0, 0)
     pit = self._pitch
     rol = self._roll
     buf = bytearray(2)
     self._read_bytes(_ADDRESS_CMPS12, _REG_PITCH_8BIT_ANGLE, buf)
     pit, rol = struct.unpack_from('>bb', buf[0:2])
     if radians:
-      return (rboard.RBL_OK, radians(pit), radians(rol))
+      return (rb.RBL_OK, radians(pit), radians(rol))
     else:
-      return (rboard.RBL_OK, pit, rol)
+      return (rb.RBL_OK, pit, rol)
 
 
   @property

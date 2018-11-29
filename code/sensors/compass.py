@@ -2,22 +2,20 @@
 # compass.py
 # Compass based on magnetometer/accelerometer readings from an chip-specific
 # driver, such as the LMS303
+# Based on Chris H's sketch:
+# https://learn.adafruit.com/pages/1341/elements/2996806/download
 #
 # The MIT License (MIT)
 # Copyright (c) 2018 Thomas Euler
 # 2018-09-26, v1
 # 2018-10-26, Non-calibrated, non-tilt corrected compass readout added;
 #             the calibrated readout is still unfinished
-#
-# Based on Chris H's sketch:
-# https://learn.adafruit.com/pages/1341/elements/2996806/download
-#
 # ----------------------------------------------------------------------------
 import array
-import robotling_board as rboard
+import robotling_board as rb
 from math import pi, sin, cos, asin, acos, atan2, sqrt
 from sensors.sensor_base import SensorBase
-from driver.helpers import timed_function
+from misc.helpers import timed_function
 
 __version__ = "0.1.0.0"
 
@@ -26,16 +24,15 @@ class Compass(SensorBase):
   """Compass class that uses accelerometer and magnetometer data."""
 
   def __init__(self, driver):
-    self._driver    = None
+    super().__init__(driver, 0)
     if driver.isReady:
       # Initialize
-      super().__init__(driver, 0)
       self._acc     = array.array('i', [0,0,0])
       self._mag     = array.array('i', [0,0,0])
       self._heading = 0.0
       self._pitch   = 0.0
       self._roll    = 0.0
-      self._type    = "Compass ({0})".format(driver.__class__.__name__)
+    self._type      = "Compass ({0})".format(driver.__class__.__name__)
 
     print("{0} {1}.".format(self._type,
                            "is ready" if driver.isReady else "not found"))
@@ -45,11 +42,11 @@ class Compass(SensorBase):
   def getHeading(self, tilt=False, calib=False, hires=True):
     """ Returns heading with or w/o tilt compensation and/or calibration,
         if available.
-        NOTE: The parameter "hires" has no effect; it exists only for
+        NOTE: The parameter `hires` has no effect; it exists only for
         compatibility reasons.
     """
     if self._driver == None:
-      return rboard.RBL_ERR_DEVICE_NOT_READY
+      return rb.RBL_ERR_DEVICE_NOT_READY
     Mag  = self._mag
     Mag  = self._driver.magnetometer_nT
 
@@ -83,11 +80,11 @@ class Compass(SensorBase):
     """ Returns heading, pitch and roll in [°] with or w/o calibration,
         if available.
     """
-    if self.getHeading(tilt=True, calib=calib) == rboard.RBL_ERR_DEVICE_NOT_READY:
+    if self.getHeading(tilt=True, calib=calib) == rb.RBL_ERR_DEVICE_NOT_READY:
       print("HERE")
-      return (rboard.RBL_ERR_DEVICE_NOT_READY, 0, 0, 0)
+      return (rb.RBL_ERR_DEVICE_NOT_READY, 0, 0, 0)
     else:
-      return (rboard.RBL_OK, self._heading, self._pitch, self._roll)
+      return (rb.RBL_OK, self._heading, self._pitch, self._roll)
 
 
   #@timed_function
@@ -95,7 +92,7 @@ class Compass(SensorBase):
     """ Returns error code, pitch and roll in [°] as a tuple
     """
     if self._driver == None:
-      return (rboard.RBL_ERR_DEVICE_NOT_READY, 0, 0)
+      return (rb.RBL_ERR_DEVICE_NOT_READY, 0, 0)
     Acc  = self._acc
     Acc  = self._driver.accelerometer
 
@@ -111,8 +108,8 @@ class Compass(SensorBase):
     self._pitch = p *180/pi
     self._roll  = r *180/pi
     if radians:
-      return (rboard.RBL_OK, p, r)
+      return (rb.RBL_OK, p, r)
     else:
-      return (rboard.RBL_OK, self._pitch, self._roll)
+      return (rb.RBL_OK, self._pitch, self._roll)
 
 # ----------------------------------------------------------------------------

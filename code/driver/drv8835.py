@@ -5,14 +5,21 @@
 # The MIT License (MIT)
 # Copyright (c) 2018 Thomas Euler
 # 2018-09-23, v1
+# 2018-11-25, v1.1, now uses dio_*.py to access machine
 # ----------------------------------------------------------------------------
 import array
 from micropython import const
-from machine import Pin, PWM
-import driver.distribution as distr
-from driver.helpers import timed_function
+from misc.helpers import timed_function
 
-__version__ = "0.1.0.0"
+from platform.platform import platform
+if platform.ID == platform.ENV_ESP32_UPY:
+  import platform.huzzah32.dio as dio
+elif platform.ID == platform.ENV_CPY_SAM51:
+  import platform.m4ex.dio as dio
+else:
+  print("ERROR: No matching hardware libraries in `platform`.")
+
+__version__ = "0.1.1.0"
 CHIP_NAME   = "drv8835"
 CHAN_COUNT  = const(2)
 MODE_NONE   = const(0)
@@ -20,7 +27,7 @@ MODE_IN_IN  = const(1)
 MODE_PH_EN  = const(2)
 MOTOR_A     = const(0)
 MOTOR_B     = const(1)
-PWN_FRQ     = const(50000)
+PWM_FRQ     = const(75000)
 
 # ----------------------------------------------------------------------------
 class DRV8835(object):
@@ -34,54 +41,43 @@ class DRV8835(object):
     #  w/ J1->Phase/Enable, w/o J1->IN/IN mode)
     self._mode    = MODE_NONE
     self._speed   = array.array('i', [0, 0])
-    self.maxSpeed = distr.uPyDistr.maxPWMDuty
     if mode == MODE_PH_EN:
-      self.pinA_EN = PWM(Pin(pinA_EN))
-      self.pinA_EN.init(freq=PWN_FRQ, duty=0)
-      self.pinA_PH = Pin(pinA_PHASE, Pin.OUT)
-      self.pinB_EN = PWM(Pin(pinB_EN))
-      self.pinB_EN.init(freq=PWN_FRQ, duty=0)
-      self.pinB_EN.duty(0)
-      self.pinB_PH = Pin(pinB_PHASE, Pin.OUT)
+      self.pinA_EN = dio.PWMOut(pinA_EN, freq=PWM_FRQ, duty=0)
+      self.pinA_PH = dio.DigitalOut(pinA_PHASE)
+      self.pinB_EN = dio.PWMOut(pinB_EN, freq=PWM_FRQ, duty=0)
+      self.pinB_PH = dio.DigitalOut(pinB_PHASE)
       self._mode = MODE_PH_EN
     elif mode == MODE_IN_IN:
-      print("IN/IN mode not yet implemented.")
+      print("IN/IN mode not implemented.")
 
-    print("[{0:7}] {1:27}: {2}"
-          .format(CHIP_NAME, "2-channel DC motor driver",
+    print("[{0:>7}] {1:27} ({2}): {3}"
+          .format(CHIP_NAME, "2-channel DC motor driver", __version__,
                   "ok" if self._mode != MODE_NONE else "FAILED"))
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def setMotorSpeed(self, speed=[0, 0]):
     """ Set speed and direction for both motors, from -100% to 100%;
-        Use 'None' to indicates that speed of that motor should be kept.
+        Use `None` to indicates that speed of that motor should be kept.
     """
     sp = self._speed
-    ms = self.maxSpeed
     if self._mode == MODE_PH_EN:
-      # Cache pins
-      AEn = self.pinA_EN.duty
-      APh = self.pinA_PH.value
-      BEn = self.pinB_EN.duty
-      BPh = self.pinB_PH.value
-
       # Calculate speeds
       spNew = speed[MOTOR_A]
       if not(spNew == None) and (spNew >= -100) and (spNew <= 100):
         sp[MOTOR_A] = spNew
-      ASp = abs(int(sp[MOTOR_A]/100.0 *ms))
+      ASp = abs(int(sp[MOTOR_A]))
       spNew = speed[MOTOR_B]
       if not(spNew == None) and (spNew >= -100) and (spNew <= 100):
         sp[MOTOR_B] = spNew
-      BSp = abs(int(sp[MOTOR_B]/100.0 *ms))
+      BSp = abs(int(sp[MOTOR_B]))
 
       # Stop motors, then change direction and set new speed
-      AEn(0)
-      BEn(0)
-      APh(sp[MOTOR_A] > 0)
-      BPh(sp[MOTOR_B] > 0)
-      AEn(ASp)
-      BEn(BSp)
+      self.pinA_EN.duty_percent = 0
+      self.pinB_EN.duty_percent = 0
+      self.pinA_PH.value = sp[MOTOR_A] > 0
+      self.pinB_PH.value = sp[MOTOR_B] > 0
+      self.pinA_EN.duty_percent = ASp
+      self.pinB_EN.duty_percent = BSp
 
   @property
   def channelCount(self):

@@ -1,2 +1,2 @@
 from micropython import const
-BOARD_VER   = const(100)
+BOARD_VER = const(100)

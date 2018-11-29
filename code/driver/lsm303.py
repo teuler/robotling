@@ -31,14 +31,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 # ----------------------------------------------------------------------------
+import time
+from micropython import const
+from misc.helpers import timed_function
+
 try:
   import struct
 except ImportError:
   import ustruct as struct
-from micropython import const
-from driver.helpers import timed_function
-import driver.distribution as distr
-import time
 
 __version__ = "0.1.0.0"
 CHIP_NAME   = "lsm303"
@@ -128,13 +128,12 @@ class LSM303(object):
   """Driver for LSM303 magnetometer/accelerometer."""
 
   def __init__(self, i2c):
-    """ Requires already initialized I2C instance.
+    """ Requires already initialized I2C bus instance.
     """
     self._i2c = i2c
     self._isReady = False
-    self._isLoBo = distr.uPyDistr.ID == distr.UPY_ESP32_LOBO
 
-    addrList = distr.uPyDistr.i2cDevAddrList
+    addrList = self._i2c.deviceAddrList
     if (_ADDRESS_ACCEL in addrList) and (_ADDRESS_MAG in addrList):
       # Enable  accelerometer and magnetometer
       self._write_u8(_ADDRESS_ACCEL, _REG_ACCEL_CTRL_REG1_A, 0x27)
@@ -147,8 +146,8 @@ class LSM303(object):
       self._mag_rate = MAGRATE_0_7
       self._isReady  = True
 
-    print("[{0:7}] {1:27}: {2}"
-          .format(CHIP_NAME, "magnetometer/accelerometer",
+    print("[{0:>7}] {1:27} ({2}): {3}"
+          .format(CHIP_NAME, "magnetometer/accelerometer", __version__,
                   "ok" if self._isReady else "NOT FOUND"))
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -276,15 +275,12 @@ class LSM303(object):
     buf    = bytearray(2)
     buf[0] = regAddr & 0xff
     buf[1] = val & 0xff
-    self._i2c.writeto(i2cAddr, buf)
+    self._i2c.bus.writeto(i2cAddr, buf)
 
   def _read_bytes(self, i2cAddr, regAddr, buf):
     cmd    = bytearray(1)
     cmd[0] = regAddr & 0xff
-    if self._isLoBo:
-      self._i2c.writeto(i2cAddr, cmd, stop=False)
-    else:
-      self._i2c.writeto(i2cAddr, cmd, False)  
-    self._i2c.readfrom_into(i2cAddr, buf)
+    self._i2c.bus.writeto(i2cAddr, cmd, False)
+    self._i2c.bus.readfrom_into(i2cAddr, buf)
 
 # ----------------------------------------------------------------------------

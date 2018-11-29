@@ -28,16 +28,28 @@
 #
 # ----------------------------------------------------------------------------
 import array
-#from binascii import hexlify
-from os import uname
-from machine import Pin, Signal, ADC, Timer, unique_id
+from machine import Timer
 from micropython import const
-from utime import ticks_us, ticks_diff
-import robotling_board as rboard
+from time import ticks_us, ticks_diff
+import robotling_board as rb
 import driver.mcp3208 as mcp3208
 import driver.drv8835 as drv8835
-import driver.distribution as distr
-from driver.helpers import timed_function
+from misc.helpers import timed_function
+from robotling_board_version import BOARD_VER
+
+from platform.platform import platform
+if platform.ID == platform.ENV_ESP32_UPY:
+  import platform.huzzah32.dio as dio
+  import platform.huzzah32.aio as aio
+  import platform.huzzah32.busio as busio
+  import platform.huzzah32.board as board
+  from platform.huzzah32.neopixel import NeoPixel
+else:
+  import platform.m4ex.dio as dio
+  # ...
+  # ...
+  # ...
+  import board
 
 __version__ = "0.1.1.0"
 
@@ -49,37 +61,31 @@ class Robotling():
   """Robotling main class."""
 
   def __init__(self, devices=[]):
-    """ Additional onboard components can be listed in "devices" and, if known,
+    """ Additional onboard components can be listed in `devices` and, if known,
         will be initialized
     """
     print("Robotling v{0:.2f} running MicroPython {1} ({2})"
-          .format(distr.BOARD_VER/100, distr.uPyDistr.sysInfo[2],
-                  distr.uPyDistr.sysInfo[0]))
+          .format(BOARD_VER/100, platform.sysInfo[2], platform.sysInfo[0]))
     print("Initializing ...")
 
     # Define a unique ID
-    #self._ID = binascii.hexlify(unique_id())
-    #print(self._ID)
+    self._ID = platform.GUID
 
     # Initialize on-board (feather) hardware
-    self._uPyLoBo = distr.uPyDistr.ID == distr.UPY_ESP32_LOBO
-    self._p13 = Pin(rboard.RED_LED, Pin.OUT)
-    self.onboardLED = Signal(self._p13)
-    self._adc_battery = ADC(Pin(rboard.ADC_BAT))
-    self._adc_battery.atten(ADC.ATTN_11DB)
+    self.onboardLED = dio.DigitalOut(rb.RED_LED, value=False)
+    self._adc_battery = aio.AnalogIn(rb.ADC_BAT)
 
     # Initialize analog sensor driver
-    self._spi = distr.uPyDistr.getSPIBus(rboard.SPI_FRQ, rboard.SCK,
-                                         rboard.MOSI, rboard.MISO)
-    self._MCP3208 = mcp3208.MCP3208(self._spi, rboard.CS_ADC)
+    self._SPI = busio.SPIBus(rb.SPI_FRQ, rb.SCK, rb.MOSI, rb.MISO)
+    self._MCP3208 = mcp3208.MCP3208(self._SPI, rb.CS_ADC)
 
     # Initialize motor driver
     self._motorDriver = drv8835.DRV8835(drv8835.MODE_PH_EN,
-                                        rboard.A_ENAB, rboard.A_PHASE,
-                                        rboard.B_ENAB, rboard.B_PHASE)
+                                        rb.A_ENAB, rb.A_PHASE,
+                                        rb.B_ENAB, rb.B_PHASE)
 
     # Initialize Neopixel (connector)
-    self._NPx = distr.NeoPixel(rboard.NEOPIX, 1)
+    self._NPx = NeoPixel(rb.NEOPIX, 1)
     self._NPx0_RGB = bytearray([0]*3)
     self._NPx0_curr = array.array("i", [0,0,0])
     self._NPx0_step = array.array("i", [0,0,0])
@@ -87,7 +93,7 @@ class Robotling():
     print("NeoPixel ready.")
 
     # Get I2C bus
-    self._i2c = distr.uPyDistr.getI2CBus(rboard.I2C_FRQ, rboard.SCL, rboard.SDA)
+    self._I2C = busio.I2CBus(rb.I2C_FRQ, rb.SCL, rb.SDA)
 
     # Initialize further devices depending on the selected onboard components
     # (e.g. which type of magnetometer/accelerometer/gyro, etc.)
@@ -96,28 +102,28 @@ class Robotling():
       # initialize lsm303 and respective compass instance
       import driver.lsm303 as lsm303
       from sensors.compass import Compass
-      self._LSM303 = lsm303.LSM303(self._i2c)
+      self._LSM303 = lsm303.LSM303(self._I2C)
       self.Compass = Compass(self._LSM303)
 
     if "compass_cmps12" in devices:
       # Very nice compass module with tilt-compensation built in
       from sensors.compass_cmps12 import Compass
-      self.Compass = Compass(self._i2c)
+      self.Compass = Compass(self._I2C)
 
     # Timer for heartbeat signal via NeoPixel, sensor update and user
     # callback
     self._tm = None
     self._tmPeriod_ms = 25
-    self._tmNeoPixel  = True
-    self._tmSensors   = True
-    self._callback    = None
+    self._tmNeoPixel = True
+    self._tmSensors = True
+    self._callback = None
 
     # Performance related
-    self._tm_t_sum    = 0
-    self._tm_t_count  = 0
-    self._lp_t        = ticks_us()
-    self._lp_t_sum    = 0
-    self._lp_t_count  = 0
+    self._tm_t_sum = 0
+    self._tm_t_count = 0
+    self._lp_t = ticks_us()
+    self._lp_t_sum = 0
+    self._lp_t_count = 0
 
     # Done
     print("... done.")
@@ -141,6 +147,7 @@ class Robotling():
 
     self._tm_t_sum   += ticks_diff(ticks_us(), t) /1000
     self._tm_t_count += 1
+    #print(self._tm_t_count)
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def loop_start(self):
@@ -203,7 +210,11 @@ class Robotling():
   def Battery_V(self):
     """ Battery voltage in [V]
     """
-    return self._adc_battery.read() *rboard.BAT_N_PER_V
+    return self._adc_battery.value *rb.BAT_N_PER_V
+
+  @property
+  def ID(self):
+    return self._ID
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   @property

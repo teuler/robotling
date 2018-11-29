@@ -7,54 +7,58 @@
 # 2018-09-13, v1
 # ----------------------------------------------------------------------------
 from micropython import const
-from pins_huzzah32 import *
 from robotling_board_version import BOARD_VER
+from platform.platform import platform
 
 __version__ = "0.1.0.0"
 
 # ----------------------------------------------------------------------------
 # Robotling board connections/pins
 #
-SCK     = GPIO5_SCK
-MOSI    = GPIO18_MOSI
-MISO    = GPIO19_MISO
-CS_ADC  = GPIO4_A5
-SPI_FRQ = const(4000000)
+if platform.ID == platform.ENV_ESP32_UPY:
+  import platform.huzzah32.board as board
 
-SCL     = GPIO22_SCL
-SDA     = GPIO23_SDA
-I2C_FRQ = const(100000)
+  SCK     = board.SCK
+  MOSI    = board.MOSI
+  MISO    = board.MISO
+  CS_ADC  = board.D4
+  SPI_FRQ = const(4000000)
 
-A_ENAB  = GPIO26_A0
-A_PHASE = GPIO14_A6
-B_ENAB  = GPIO21
-B_PHASE = GPIO25_A1
+  SCL     = board.SCL
+  SDA     = board.SDA
+  I2C_FRQ = const(100000)
 
-ENAB_5V = GPIO16_RX
+  A_ENAB  = board.D26
+  A_PHASE = board.D14
+  B_ENAB  = board.D21
+  B_PHASE = board.D25
 
-RED_LED = GPIO13_LED
-ADC_BAT = GPIO35_BAT
+  ENAB_5V = board.D16
 
-if BOARD_VER == 100:
-  NEOPIX  = GPIO15_A8    # Connect Neopixel to DIO #0
-  DIO0    = GPIO27_A10
-  DIO1    = GPIO13_LED
-  DIO2    = GPIO33_A9
-  DIO3    = GPIO15_A8
+  RED_LED = board.LED
+  ADC_BAT = board.BAT
 
-elif BOARD_VER == 110:
-  NEOPIX  = GPIO15_A8    # -> Neopixel connector
-  DIO0    = GPIO27_A10
-  DIO1    = GPIO13_LED
-  DIO2    = GPIO33_A9
-  DIO3    = GPIO32_A7
+  if BOARD_VER == 100:
+    NEOPIX  = board.D15    # Connect Neopixel to DIO #0
+    DIO0    = board.D27
+    DIO1    = board.LED
+    DIO2    = board.D33
+    DIO3    = board.D15
 
-elif BOARD_VER == 120:
-  NEOPIX  = GPIO15_A8    # -> Neopixel connector
-  DIO0    = GPIO27_A10
-  DIO1    = GPIO13_LED
-  DIO2    = GPIO33_A9
-  DIO3    = GPIO32_A7
+  elif BOARD_VER >= 110:
+    NEOPIX  = board.D15    # -> Neopixel connector
+    DIO0    = board.D27
+    DIO1    = board.LED
+    DIO2    = board.D33
+    DIO3    = board.D32
+
+elif platform.ID == platform.ENV_CPY_SAM51:
+  import board
+  # TODO:
+  # ***********************
+  # ***********************
+  # ***********************
+
 
 # ----------------------------------------------------------------------------
 # The battery is connected to the pin via a voltage divider (1/2), and thus
