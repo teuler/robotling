@@ -154,7 +154,7 @@ class Compass(SensorBase):
   def _read_bytes(self, i2cAddr, regAddr, buf):
     cmd    = bytearray(1)
     cmd[0] = regAddr & 0xff
-    self._i2c.writeto(i2cAddr, cmd, False)
-    self._i2c.readfrom_into(i2cAddr, buf)
+    self._i2c.bus.writeto(i2cAddr, cmd, False)
+    self._i2c.bus.readfrom_into(i2cAddr, buf)
 
 # ----------------------------------------------------------------------------
