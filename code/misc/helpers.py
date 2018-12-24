@@ -5,10 +5,17 @@
 # The MIT License (MIT)
 # Copyright (c) 2018 Thomas Euler
 # 2018-09-13, v1
+# 2018-12-22, v1.1 - Added TimeTracker class
 # ----------------------------------------------------------------------------
 import array
 
-__version__ = "0.1.0.0"
+from platform.platform import platform
+if platform.ID == platform.ENV_ESP32_UPY:
+  from time import ticks_us, ticks_diff
+else:
+  from platform.m4ex.utime import ticks_us, ticks_diff
+
+__version__ = "0.1.1.0"
 
 # ----------------------------------------------------------------------------
 class TemporalFilter(object):
@@ -26,6 +33,37 @@ class TemporalFilter(object):
     for i in range(self._n):
       av += self._buf[i]
     return av /self._n
+
+# ----------------------------------------------------------------------------
+class TimeTracker(object):
+  """Time tracker with callback support."""
+
+  def __init__(self, period_ms=0, callback=None):
+    self._sum_ms = 0
+    self._count = 0
+    self._per_ms = period_ms
+    self._t0_ms = 0
+    self._callback = callback
+    self.reset()
+
+  def reset(self, period_ms=-1):
+    if period_ms >= 0:
+      self._per_ms = period_ms
+    self._t0_ms = ticks_us()
+
+  def update(self):
+    if self._callback:
+      self._callback()
+    self._sum_ms += ticks_diff(ticks_us(), self._t0_ms) /1000
+    self._count  += 1
+
+  @property
+  def meanDuration_ms(self):
+    return self._sum_ms /self._count
+
+  @property
+  def period_ms(self):
+    return self._per_ms
 
 # ----------------------------------------------------------------------------
 def timed_function(f, *args, **kwargs):

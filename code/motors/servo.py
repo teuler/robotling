@@ -6,6 +6,9 @@
 # Copyright (c) 2018 Thomas Euler
 # 2018-10-09, v1
 # 2018-11-25, v1.1, now uses dio_*.py to access machine
+# 2018-12-23, v1.2, added `verbose` to print timing information to help
+#                   setting up a new servo (range). Now also handles inverted
+#                   angle ranges.
 # ----------------------------------------------------------------------------
 import array
 
@@ -17,30 +20,35 @@ elif platform.ID == platform.ENV_CPY_SAM51:
 else:
   print("ERROR: No matching hardware libraries in `platform`.")
 
-__version__ = "0.1.1.0"
+__version__ = "0.1.2.0"
 
 # ----------------------------------------------------------------------------
 class Servo(object):
   """Simplified interface class for servos."""
 
-  def __init__(self, pin, freq=50, us_range=[600, 2400], ang_range=[0, 180]):
+  def __init__(self, pin, freq=50, us_range=[600, 2400], ang_range=[0, 180],
+               verbose=False):
     """ Initialises the pin that connects to the servo, with `pin` as a pin
         number, the frequency `freq` of the signal (in Hz), the minimun
         and maximum supported timing (`us_range`), and the respective angular
         range (`ang_range`) covered.
+        If `verbose` == True then angle and timing is logged; useful for
+        setting up a new servo (range).
     """
-    self._range    = array.array('i', [0]*6)
-    self._range[0] = us_range[0]
-    self._range[1] = us_range[1]
-    self._range[2] = us_range[1] -us_range[0]
-    self._range[3] = ang_range[0]
-    self._range[4] = ang_range[1]
-    self._range[5] = abs(ang_range[1] -ang_range[0])
-    self._t_us     = 0
-    self._freq     = freq
-    self._angle    = 0
-    self._pwm      = dio.PWMOut(pin, freq=freq, duty=0)
-    self._max_duty = self._pwm.max_duty
+    self._range      = array.array('i', [0]*6)
+    self._range[0]   = us_range[0]
+    self._range[1]   = us_range[1]
+    self._range[2]   = us_range[1] -us_range[0]
+    self._invert     = ang_range[0] > ang_range[1]
+    self._range[3]   = min(ang_range[0], ang_range[1])
+    self._range[4]   = max(ang_range[0], ang_range[1])
+    self._range[5]   = abs(ang_range[1] -ang_range[0])
+    self._verbose    = verbose
+    self._t_us       = 0
+    self._freq       = freq
+    self._angle      = 0
+    self._pwm        = dio.PWMOut(pin, freq=freq, duty=0)
+    self._max_duty   = self._pwm.max_duty
     print("Servo is ready.")
 
   @property
@@ -53,10 +61,9 @@ class Servo(object):
   def angle(self, value):
     """ Move to the specified angle (in degrees)
     """
-    a = self._angle
-    a = min(self._range[4], max(self._range[3], value))
-    self._write_us(self._range[0] +self._range[2]
-                   *(a -self._range[3]) //self._range[5])
+    r = self._range
+    self._angle = min(r[4], max(r[3], value))
+    self._write_us(r[0] +r[2] *(self._angle -r[3]) //r[5])
 
   def off(self):
     """ Turn servo off
@@ -73,6 +80,15 @@ class Servo(object):
       t = 0
       self._pwm.duty = 0
     else:
-      self._pwm.duty = min(r[1], max(r[0], t_us)) *1024 *self._freq // 1000000
+      t = min(r[1], max(r[0], t_us))
+      if not self._invert:
+        d = t *1024 *self._freq // 1000000
+      else:
+        d = (r[1] -t +r[0]) *1024 *self._freq // 1000000
+      self._pwm.duty = d
+      if self._verbose:
+        print("angle={0}°, t_us={1}, duty={2}".format(self._angle, t_us, d))
+
+
 
 # ----------------------------------------------------------------------------

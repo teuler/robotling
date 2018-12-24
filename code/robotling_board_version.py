@@ -1,2 +1,4 @@
 from micropython import const
-BOARD_VER = const(100)
+
+# Robotling board version
+BOARD_VER = const(120)

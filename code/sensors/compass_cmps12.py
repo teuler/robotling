@@ -75,7 +75,7 @@ class Compass(SensorBase):
       self._heading = 0.0
       self._pitch   = 0.0
       self._roll    = 0.0
-      self._type    = "compass (CMPS12 v{0})".format(self._version)
+      self._type    = "Compass (CMPS12 v{0})".format(self._version)
       self._isReady = True
 
     print("{0} {1}.".format(self._type,

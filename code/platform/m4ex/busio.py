@@ -2,14 +2,14 @@
 # busio.py
 #
 # Basic bus support
-# (for standard micropython, ESP32, as HUZZAH32 feather)
+# (for CircuitPython, M4 express)
 #
 # The MIT License (MIT)
 # Copyright (c) 2018 Thomas Euler
-# 2018-09-21, v1
+# 2018-12-09, v1
 # ----------------------------------------------------------------------------
 from micropython import const
-from machine import SPI, Pin, I2C
+from busio import SPI, I2C
 
 __version__ = "0.1.0.0"
 
@@ -29,13 +29,13 @@ class SPIBus(object):
 class I2CBus(object):
   """I2C bus access."""
 
-  def __init__(self, _freq, scl, sda):
+  def __init__(self, _freq, _scl, _sda):
     self._i2cDevList = []
-    self._i2c = I2C(scl=Pin(scl), sda=Pin(sda), freq=_freq)
+    self._i2c = I2C(scl=_scl, sda=_sda, frequency=_freq)
     self._i2cDevList = self._i2c.scan()
 
   def deinit(self):
-    self._i2c = None
+    self._i2c.deinit()
 
   @property
   def bus(self):

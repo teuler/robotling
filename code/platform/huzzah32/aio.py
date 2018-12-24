@@ -35,6 +35,7 @@ class AnalogIn(object):
     self._pin = ADC(Pin(pin))
     self._pin.atten(ATTN[attn])
     self._pin.width(WIDTH[width])
+    self._max_adc = 2**(9 +WIDTH[width]) -1
 
   def deinit(self):
     self._pin = None
@@ -42,5 +43,9 @@ class AnalogIn(object):
   @property
   def value(self):
     return self._pin.read()
+
+  @property
+  def max_adc(self):
+    return self._max_adc
 
 # ----------------------------------------------------------------------------

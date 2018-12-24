@@ -5,12 +5,16 @@
 # The MIT License (MIT)
 # Copyright (c) 2018 Thomas Euler
 # 2018-09-13, v1
+# 2018-12-22, v1.1 - pins for M4 feather express added
 # ----------------------------------------------------------------------------
 from micropython import const
 from robotling_board_version import BOARD_VER
 from platform.platform import platform
 
-__version__ = "0.1.0.0"
+__version__ = "0.1.1.0"
+
+SPI_FRQ = const(4000000)
+I2C_FRQ = const(100000)
 
 # ----------------------------------------------------------------------------
 # Robotling board connections/pins
@@ -22,11 +26,9 @@ if platform.ID == platform.ENV_ESP32_UPY:
   MOSI    = board.MOSI
   MISO    = board.MISO
   CS_ADC  = board.D4
-  SPI_FRQ = const(4000000)
 
   SCL     = board.SCL
   SDA     = board.SDA
-  I2C_FRQ = const(100000)
 
   A_ENAB  = board.D26
   A_PHASE = board.D14
@@ -34,31 +36,65 @@ if platform.ID == platform.ENV_ESP32_UPY:
   B_PHASE = board.D25
 
   ENAB_5V = board.D16
-
   RED_LED = board.LED
+
   ADC_BAT = board.BAT
 
   if BOARD_VER == 100:
-    NEOPIX  = board.D15    # Connect Neopixel to DIO #0
+    NEOPIX  = board.D15      # Connect Neopixel to DIO #0
     DIO0    = board.D27
     DIO1    = board.LED
     DIO2    = board.D33
     DIO3    = board.D15
 
   elif BOARD_VER >= 110:
-    NEOPIX  = board.D15    # -> Neopixel connector
+    NEOPIX  = board.D15      # -> Neopixel connector
     DIO0    = board.D27
     DIO1    = board.LED
     DIO2    = board.D33
     DIO3    = board.D32
 
+
 elif platform.ID == platform.ENV_CPY_SAM51:
   import board
-  # TODO:
-  # ***********************
-  # ***********************
-  # ***********************
 
+  SCK     = board.SCK
+  MOSI    = board.MOSI
+  MISO    = board.MISO
+  CS_ADC  = board.A4
+
+  SCL     = board.SCL
+  SDA     = board.SDA
+
+  A_ENAB  = board.A0
+  A_PHASE = board.D5
+  B_ENAB  = board.D4
+  B_PHASE = board.A1
+
+  ENAB_5V = board.RX
+
+  RED_LED = board.D13
+  ADC_BAT = board.VOLTAGE_MONITOR
+
+  if BOARD_VER == 100:
+    '''
+    NEOPIX  = board.D9  #D15 # Connect Neopixel to DIO #0
+    '''
+    NEOPIX  = board.NEOPIXEL
+    DIO0    = board.D11
+    DIO1    = board.D13
+    DIO2    = board.D10
+    DIO3    = board.D9
+
+  elif BOARD_VER >= 110:
+    '''
+    NEOPIX  = board.D9  #D15 # -> Neopixel connector
+    '''
+    NEOPIX  = board.NEOPIXEL
+    DIO0    = board.D11
+    DIO1    = board.D13
+    DIO2    = board.D10
+    DIO3    = board.D6
 
 # ----------------------------------------------------------------------------
 # The battery is connected to the pin via a voltage divider (1/2), and thus

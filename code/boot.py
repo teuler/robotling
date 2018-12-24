@@ -43,12 +43,9 @@ def do_connect():
     print('Network config:', sta_if.ifconfig())
 
 # REPL via WLAN
-'''
-do_connect()
-'''
 """
+do_connect()
 import webrepl
 webrepl.start()
 """
-
 # ----------------------------------------------------------------------------
