@@ -8,3 +8,4 @@ Please check out the [video](https://youtu.be/wil41YtIeN8) and find the details 
 
 * 2018-11-18 - Initial release 
 * 2018-11-29 - Release v1.1, first complete version for board v1.0 and huzzah32
+* 2018-12-24 - Release v1.2, board v1.2 included, some code refactoring and improvements
