@@ -12,13 +12,12 @@ DIST_CLIFF_CM    = const(20)   # Farer distances are considered cliffs
 # Servo settings
 MIN_DIST_SERVO   = const(45)   # Limits of servo that holds the arm with the
 MAX_DIST_SERVO   = const(-45)  # .. IR distance sensor in [°]
-MIN_US_SERVO     = const(1322) # Minimun timing of servo
-MAX_US_SERVO     = const(2350) # Maximum timing of servo
+MIN_US_SERVO     = const(1322) # Minimum timing of servo in [us]
+MAX_US_SERVO     = const(2350) # Maximum timing of servo in [us]
 SCAN_DIST_SERVO  = const(-25)  # Angle of IR distance sensor arm
 
 # Period of timer that keeps sensor values updated, the NeoPixel pulsing,
 # and checks for tilt (in [ms])
-TM_MIN_PERIOD    = const(20)
 TM_PERIOD        = const(50)
 
 # Default motor speeds ..

@@ -25,7 +25,7 @@ class NeoPixel(NeoPixelBase):
     """ Takes an RGB value as a tupple for the NeoPixel with the index `iNP`,
         update all NeoPixels if `show`==True
     """
-    self.__setitem__(iNP, rgb)
+    self.__setitem__(iNP, tuple(rgb))
     if show:
       self.show()
 

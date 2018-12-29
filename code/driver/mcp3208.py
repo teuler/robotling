@@ -33,7 +33,7 @@ class MCP3208(object):
         8 channel A/D converter IC (MCP3208). For performance reasons,
         not much validity checking is done.
     """
-    self._spi   = spi.bus
+    self._spi   = spi
     self._cmd   = bytearray(b'\x00\x00\x00')
     self._buf   = bytearray(3)
     self._data  = array.array('i', [0]*CHAN_COUNT)

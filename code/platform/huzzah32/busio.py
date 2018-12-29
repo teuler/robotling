@@ -25,6 +25,9 @@ class SPIBus(object):
   def bus(self):
     return self._spi
 
+  def write_readinto(self, wbuf, rbuf):
+    self._spi.write_readinto(wbuf, rbuf)
+
 # ----------------------------------------------------------------------------
 class I2CBus(object):
   """I2C bus access."""
@@ -44,5 +47,11 @@ class I2CBus(object):
   @property
   def deviceAddrList(self):
     return self._i2cDevList
+
+  def writeto(self, addr, buf, stop_=True):
+    self._i2c.writeto(addr, buf, stop=stop_)
+
+  def readfrom_into(self, addr, buf):
+    self._i2c.readfrom_into(addr, buf)
 
 # ----------------------------------------------------------------------------

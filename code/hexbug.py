@@ -26,7 +26,6 @@
 #             moved to separate file (`hexbug_config-py`)
 # ----------------------------------------------------------------------------
 import array
-import time
 import random
 from micropython import const
 import robotling_board as rb
@@ -36,9 +35,14 @@ from robotling_board_version import BOARD_VER
 from motors.dc_motor import DCMotor
 from motors.servo import Servo
 from sensors.sharp_ir_distance import SharpIRDistSensor_GP2Y0A41SK0F
-from misc.helpers import TimeTracker, TemporalFilter
+from misc.helpers import TemporalFilter
 from hexbug_config import *
-from machine import Timer
+
+from platform.platform import platform
+if platform.ID == platform.ENV_ESP32_UPY:
+  import time
+else:
+  import platform.m4ex.time as time
 
 # ----------------------------------------------------------------------------
 # Robot states
@@ -78,7 +82,7 @@ class HexBug(Robotling):
     # the time the motor is running (in [s]) is used to define angular
     # position
     self._distData = array.array("f", [0] *MAX_IR_SCAN_POS)
-    self._scanPos  = [-250, 550, -350]
+    self._scanPos  = [-450, 500, -250]
     self.onTrouble = False
 
     # Add motors
@@ -99,46 +103,18 @@ class HexBug(Robotling):
     self.PitchFilter = TemporalFilter(8, "f", 6)
     self.RollFilter  = TemporalFilter(8, "f", 6)
 
-    # Prepare a Timer (`_timerHousekeeper`) that runs the "heartbeat" signal
-    # via the NeoPixel, keeps sensors updated, and does more housekeeping.
-    # Also create a TimeTracker instance to measure the housekeeper's
-    # performance
-    self._timerHousekeeper = None
-    self._trackHousekeeper = TimeTracker(period_ms=TM_PERIOD)
+    self.tTemp = time.ticks_us()
 
     # Starting state
     self.state = STATE_IDLE
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  def startTimer(self, per_ms):
-    """ Start timer that runs the housekeeper
-    """
-    if self._timerHousekeeper == None:
-      self._timerHousekeeper = Timer(1)
-      per_ms = max(self.MIN_UPDATE_PERIOD_MS, per_ms)
-      self._timerHousekeeper.init(period=per_ms, callback=self.housekeeper)
-
-  def stopTimer(self):
-    """ Stop timer that runs the housekeeper and switch NeoPixel off
-    """
-    if not(self._timerHousekeeper == None):
-      self._timerHousekeeper.deinit()
-      self._timerHousekeeper = None
-      self.NeoPixelRGB = 0
-
-  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def housekeeper(self, info=None):
-    """ Does the housekeeping:
-        - Calls the update function of the robotling board
+    """ Does the hexbug-related housekeeping:
         - Stop motors if robot is tilted (e.g. falls on the side) by checking
           pitch/roll provided by the compass
         - Changes also color of NeoPixel depending on the robot's state
     """
-    self._trackHousekeeper.reset()
-
-    # Update sensors
-    self.update()
-
     # Check if robot is tilted ...
     epr = self.Compass.getPitchRoll()
     pAv = self.PitchFilter.mean(epr[1])
@@ -156,12 +132,9 @@ class HexBug(Robotling):
     tAv = self.turnLoadFilter.mean(self._MCP3208.data[7])
     print("walk={0:.0f}, turn={1:.0f}".format(wAv, tAv))
     '''
-
     # Change NeoPixel according to state
     i = self.state *3
     self.startPulseNeoPixel(STATE_COLORS[i:i+3])
-
-    self._trackHousekeeper.update()
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def onLoopStart(self):
@@ -169,25 +142,6 @@ class HexBug(Robotling):
         the beginning of the main loop
     """
     pass
-
-
-  def printReport(self):
-    """ Prints a report on memory usage and performance
-    """
-    import gc
-    gc.collect()
-    used  = gc.mem_alloc()
-    total = gc.mem_free() +used
-    print("Memory     : {0:.0f}% of {1:.0f}kB heap RAM used."
-          .format(used/total*100, total/1024))
-    batt  = self.Battery_V
-    print("Battery    : {0:.1f}V, ~{1:.0f}% charged"
-          .format(batt, batt/4.2 *100))
-    avg_ms = self._trackHousekeeper.meanDuration_ms
-    dur_ms = self._trackHousekeeper.period_ms
-    print("Performance: housekeeper {0:6.3f}ms @ {1:.1f}Hz ~{2:.0f}%"
-          .format(avg_ms, 1000/dur_ms, avg_ms /dur_ms *100))
-    print("---")
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def scanForObstacleOrCliff(self):
@@ -198,9 +152,9 @@ class HexBug(Robotling):
     c = False
     for iPos, Pos in enumerate(self._scanPos):
       self.MotorTurn.speed = SPEED_SCAN *(-1,1)[Pos < 0]
-      time.sleep_ms(abs(Pos))
+      self.spin_ms(abs(Pos))
       self.MotorTurn.speed = 0
-      time.sleep_ms(10)
+      self.spin_ms(10)
       d = self.SensorDistA.dist_cm
       self._distData[iPos] = d
       o = o or (d < DIST_OBST_CM)
@@ -233,9 +187,9 @@ class HexBug(Robotling):
         pit  = min(max(0, pit), maxPit)
         self.ServoDistSensor.angle = pit
         self.MotorTurn.speed = SPEED_TURN *dir
-        time.sleep_ms(abs(dYaw))
+        self.spin_ms(abs(dYaw))
         self.MotorTurn.speed = 0
-        time.sleep_ms(random.randint(0,500))
+        self.spin_ms(random.randint(0, 500))
     finally:
       # Stop head movement, if any, move the IR sensor back into scan
       # position and change back state
@@ -250,10 +204,10 @@ class HexBug(Robotling):
         "trial" times.
     """
     self.ServoDistSensor.angle = angle
-    time.sleep_ms(200)
+    self.spin_ms(200)
     for i in range(trials):
       self.update()
       print("{0} cm".format(self.SensorDistA.dist_cm))
-      time.sleep_ms(0 if trials <= 1 else 250)
+      self.spin_ms(0 if trials <= 1 else 250)
 
 # ----------------------------------------------------------------------------

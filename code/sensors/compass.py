@@ -32,7 +32,7 @@ class Compass(SensorBase):
       self._heading = 0.0
       self._pitch   = 0.0
       self._roll    = 0.0
-    self._type      = "Compass ({0})".format(driver.__class__.__name__)
+      self._type    = "Compass ({0})".format(driver.name)
 
     print("{0} {1}.".format(self._type,
                            "is ready" if driver.isReady else "not found"))

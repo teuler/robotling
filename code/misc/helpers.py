@@ -13,7 +13,7 @@ from platform.platform import platform
 if platform.ID == platform.ENV_ESP32_UPY:
   from time import ticks_us, ticks_diff
 else:
-  from platform.m4ex.utime import ticks_us, ticks_diff
+  from platform.m4ex.time import ticks_us, ticks_diff
 
 __version__ = "0.1.1.0"
 

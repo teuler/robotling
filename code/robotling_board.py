@@ -61,12 +61,15 @@ elif platform.ID == platform.ENV_CPY_SAM51:
   SCK     = board.SCK
   MOSI    = board.MOSI
   MISO    = board.MISO
-  CS_ADC  = board.A4
+  CS_ADC  = board.A5
 
   SCL     = board.SCL
   SDA     = board.SDA
 
-  A_ENAB  = board.A0
+  A_ENAB  = board.A3
+  # The M4 express feather does not allow PWM with pin A0, therefore to use
+  # robotling boards <= v1.2 requires to solder a bridge between the pins A0
+  # and A3.
   A_PHASE = board.D5
   B_ENAB  = board.D4
   B_PHASE = board.A1

@@ -6,9 +6,16 @@
 # The MIT License (MIT)
 # Copyright (c) 2018 Thomas Euler
 # 2018-09-13, v1
-# 2018-11-10, v1.1 - Compatible to Boris Lovosevic's MicroPython ESP32 port
-# 2018-12-22, v1.2 - Class `Robotling` now more restricted to the board-
-#                    related functions
+# 2018-11-10, v1.1, Compatible to Boris Lovosevic's MicroPython ESP32 port
+# 2018-12-22, v1.2, Class `Robotling` now more restricted to the board-
+#                   related functions
+# 2018-12-28, v1.3, Added `spin_ms()`, which needs to be called once per loop
+#                   and instead of `sleep_ms()` to keep board updated. This
+#                   solution is superior to the use of a timer, because a) it
+#                   is deterministic (avoids randomly interrupting the program
+#                   flow and, hence, inconsistencies) and b) makes the code
+#                   compatible to CircuitPython, which does not (yet?) support
+#                   timers.
 #
 # Open issues:
 # - NeoPixels don't yet quite as expected with the LoBo ESP32 MicroPython
@@ -22,7 +29,7 @@ from micropython import const
 import robotling_board as rb
 import driver.mcp3208 as mcp3208
 import driver.drv8835 as drv8835
-from misc.helpers import timed_function
+from misc.helpers import timed_function, TimeTracker
 from robotling_board_version import BOARD_VER
 
 from platform.platform import platform
@@ -32,16 +39,16 @@ if platform.ID == platform.ENV_ESP32_UPY:
   import platform.huzzah32.aio as aio
   import platform.huzzah32.busio as busio
   from platform.huzzah32.neopixel import NeoPixel
-  from time import ticks_us, ticks_diff
+  import time
 else:
   import board
   import platform.m4ex.dio as dio
   import platform.m4ex.aio as aio
   import platform.m4ex.busio as busio
   from platform.m4ex.neopixel import NeoPixel
-  from platform.m4ex.utime import ticks_us, ticks_diff
+  import platform.m4ex.time as time
 
-__version__ = "0.1.2.0"
+__version__ = "0.1.3.0"
 
 # ----------------------------------------------------------------------------
 class Robotling():
@@ -57,6 +64,10 @@ class Robotling():
   - update()
     Update onboard devices (Neopixel, analog sensors, etc.). Call frequently
     to keep sensors updated and NeoPixel pulsing!
+  - spin_ms(dur_ms=0, period_ms=-1, callback=None)
+    Instead of using a timer that calls `update()` at a fixed frequency (e.g.
+    at 20 Hz), one can regularly, calling `spin()` once per main loop and
+    everywhere else instead of `time.sleep_ms()`. For details, see there.
   - powerDown()
     Switch off NeoPixel, motor driver, etc.
   - startPulseNeoPixel()
@@ -73,6 +84,7 @@ class Robotling():
   - _MCP3208       : 8-channel 12-bit A/C converter driver
   - _LSM303        : magnetometer/accelerometer driver (if available)
   - _motorDriver   : 2-channel DC motor driver
+  - _spinTracker   : Tracks performance of `spin_ms()` function
 
   Internal methods:
   ----------------
@@ -82,13 +94,17 @@ class Robotling():
 
   HEARTBEAT_STEP_SIZE  = const(5)   # Step size for pulsing NeoPixel
   MIN_UPDATE_PERIOD_MS = const(20)  # Minimal time between update() calls
+  APPROX_UPDATE_DUR_MS = const(8)   # Approx. duration of the update/callback
 
   def __init__(self, devices=[]):
     """ Additional onboard components can be listed in `devices` and, if known,
         will be initialized
     """
-    print("Robotling v{0:.2f} running MicroPython {1} ({2})"
-          .format(BOARD_VER/100, platform.sysInfo[2], platform.sysInfo[0]))
+    print("Robotling (board v{0:.2f}, software v{1})"
+          .format(BOARD_VER/100, __version__))
+    print("... running MicroPython {0} ({1})"
+          .format(platform.sysInfo[2], platform.sysInfo[0]))
+
     print("Initializing ...")
 
     # Define a unique ID
@@ -133,16 +149,109 @@ class Robotling():
       from sensors.compass_cmps12 import Compass
       self.Compass = Compass(self._I2C)
 
+    # Initialize spin function-related variables
+    self._spin_period_ms = 0
+    self._spin_t_last_ms = 0
+    self._spin_callback = None
+    self._spinTracker = TimeTracker()
+
     # Done
     print("... done.")
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def update(self):
-    """ Update onboard devices (Neopixel, analog sensors, etc.).
-        Call frequently to keep sensors updated and NeoPixel pulsing!
+    """ Update onboard devices (Neopixel, analog sensors, etc.) immediately.
+        User has to take care that this function is called regularly to keep
+        sensors updated and NeoPixel pulsing.
     """
+    self._spinTracker.reset()
     self._MCP3208.update()
     self._pulseNeoPixel()
+    if self._spin_callback:
+      self._spin_callback()
+    self._spinTracker.update()
+
+
+  def spin_ms(self, dur_ms=0, period_ms=-1, callback=None):
+    """ If not using a Timer to call `update()` regularly, calling `spin()`
+        once per main loop and everywhere else instead of `time.sleep_ms()`
+        is an alternative to keep the robotling board updated.
+        e.g. "spin(period_ms=50, callback=myfunction)"" is setting it up,
+             "spin(100)"" (~sleep for 100 ms) or "spin()" keeps it running.
+    """
+    #print("spin_ms(", dur_ms, period_ms, ");", self._spin_t_last_ms)
+
+    if self._spin_period_ms > 0:
+      p_ms = self._spin_period_ms
+      p_us = p_ms *1000
+      d_us = dur_ms *1000
+
+      if dur_ms > 0 and dur_ms < (p_ms -APPROX_UPDATE_DUR_MS):
+        time.sleep_ms(dur_ms)
+
+      elif dur_ms >= (p_ms -APPROX_UPDATE_DUR_MS):
+        # Sleep for given time while updating the board regularily; start by
+        # sleeping for the remainder of the time to the next update ...
+        t_us  = time.ticks_us()
+        dt_ms = time.ticks_diff(time.ticks_ms(), self._spin_t_last_ms)
+        if dt_ms > 0 and dt_ms < p_ms:
+          time.sleep_ms(dt_ms)
+
+        # Update
+        self.update()
+        self._spin_t_last_ms = time.ticks_ms()
+
+        # Check if sleep time is left ...
+        d_us = d_us -int(time.ticks_diff(time.ticks_us(), t_us))
+        if d_us <= 0:
+          return
+
+        # ... and if so, pass the remaining time by updating at regular
+        # intervals
+        while time.ticks_diff(time.ticks_us(), t_us) < (d_us -p_us):
+          time.sleep_us(p_us)
+          self.update()
+
+        # Remember time of last update
+        self._spin_t_last_ms = time.ticks_ms()
+
+      else:
+        # No sleep duration given, thus just check if time is up and if so,
+        # call update and remember time
+        d_ms = time.ticks_diff(time.ticks_ms(), self._spin_t_last_ms)
+        if d_ms > self._spin_period_ms:
+          self.update()
+          self._spin_t_last_ms = time.ticks_ms()
+
+    elif period_ms > 0:
+      # Set up spin parameters and return
+      self._spin_period_ms = period_ms
+      self._spin_callback = callback
+      self._spinTracker.reset(period_ms)
+      self._spin_t_last_ms = time.ticks_ms()
+
+    else:
+      # Spin parameters not setup, therefore just sleep
+      time.sleep_ms(dur_ms)
+
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  def printReport(self):
+    """ Prints a report on memory usage and performance
+    """
+    import gc
+    gc.collect()
+    used  = gc.mem_alloc()
+    total = gc.mem_free() +used
+    print("Memory     : {0:.0f}% of {1:.0f}kB heap RAM used."
+          .format(used/total*100, total/1024))
+    batt  = self.Battery_V
+    print("Battery    : {0:.1f}V, ~{1:.0f}% charged"
+          .format(batt, batt/4.2 *100))
+    avg_ms = self._spinTracker.meanDuration_ms
+    dur_ms = self._spinTracker.period_ms
+    print("Performance: spin: {0:6.3f}ms @ {1:.1f}Hz ~{2:.0f}%"
+          .format(avg_ms, 1000/dur_ms, avg_ms /dur_ms *100))
+    print("---")
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def powerDown(self):
