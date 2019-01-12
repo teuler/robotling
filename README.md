@@ -16,5 +16,6 @@ Please check out the [video](https://youtu.be/wil41YtIeN8) and find the details 
   updated. This solution is superior to the use of a timer, because (i) it is deterministic (avoids randomly interrupting the program 
   flow and, hence, inconsistencies) and (ii) makes the code compatible to CircuitPython, which does not (yet?) support timers.
 * 2019-01-12 
-  - A few bug fixes, more drivers (dotstar, VL6180X). 
+  - A few bug fixes
+  - More drivers (dotstar, VL6180X). 
   - Works now also with the M4 Express Feather from Adafruit (and CircuitPython).
