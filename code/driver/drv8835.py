@@ -50,7 +50,7 @@ class DRV8835(object):
     elif mode == MODE_IN_IN:
       print("IN/IN mode not implemented.")
 
-    print("[{0:>7}] {1:27} ({2}): {3}"
+    print("[{0:>12}] {1:35} ({2}): {3}"
           .format(CHIP_NAME, "2-channel DC motor driver", __version__,
                   "ok" if self._mode != MODE_NONE else "FAILED"))
 

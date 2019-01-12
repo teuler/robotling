@@ -146,7 +146,7 @@ class LSM303(object):
       self._mag_rate = MAGRATE_0_7
       self._isReady  = True
 
-    print("[{0:>7}] {1:27} ({2}): {3}"
+    print("[{0:>12}] {1:35} ({2}): {3}"
           .format(CHIP_NAME, "magnetometer/accelerometer", __version__,
                   "ok" if self._isReady else "NOT FOUND"))
 
@@ -261,7 +261,6 @@ class LSM303(object):
   @property
   def name(self):
     return CHIP_NAME
-
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def collectCalibrationData(self, trials):

@@ -18,6 +18,7 @@ from sensors.sensor_base import SensorBase
 import robotling_board as rb
 
 __version__ = "0.1.0.0"
+CHIP_NAME   = "CMPS12"
 
 # pylint: disable=bad-whitespace
 _ADDRESS_CMPS12            = const(0x60)  # (0xD0 >> 1)
@@ -75,11 +76,13 @@ class Compass(SensorBase):
       self._heading = 0.0
       self._pitch   = 0.0
       self._roll    = 0.0
-      self._type    = "Compass (CMPS12 v{0})".format(self._version)
+      self._type    = "Compass w/ tilt-compensation"
       self._isReady = True
 
-    print("{0} {1}.".format(self._type,
-                           "is ready" if self._isReady else "not found"))
+    cn =  "{0}_v{1}".format(CHIP_NAME, self._version)
+    print("[{0:>12}] {1:35} ({2}): {3}"
+          .format(cn, self._type, __version__,
+                  "ok" if self._isReady else "FAILED"))
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   #@timed_function

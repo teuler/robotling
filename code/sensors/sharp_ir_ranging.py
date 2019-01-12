@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------------
-# sharp_ir_distance.py
-# Analog Sharp IR distance sensors
+# sharp_ir_ranging.py
+# Analog Sharp IR range sensors
 #
 # The MIT License (MIT)
 # Copyright (c) 2018 Thomas Euler
@@ -11,24 +11,25 @@ from math import exp
 from sensors.sensor_base import SensorBase
 
 __version__ = "0.1.0.0"
+CHIP_NAME   = "GP2Y0A41SK0F"
 
 # ----------------------------------------------------------------------------
-class SharpIRDistSensor(SensorBase):
-  """Base class for analog Sharp IR distance sensors."""
+class SharpIRRangingSensor(SensorBase):
+  """Base class for analog Sharp IR ranging sensors."""
 
   def __init__(self, driver, chan):
     super().__init__(driver, chan)
-    self._type = "IR distance"
+    self._type = "IR range"
     self._coef = array.array('f', [1,1,1,1])
 
   @property
-  def dist_raw(self):
+  def range_raw(self):
     if self._autoUpdate:
       self._driver.update()
     return self._driver.data[self._chan]
 
   @property
-  def dist_cm(self):
+  def range_cm(self):
     if self._autoUpdate:
       self._driver.update()
     cf = self._coef
@@ -36,17 +37,20 @@ class SharpIRDistSensor(SensorBase):
     return cf[0]+ cf[1]*exp(-cf[2]*x)+cf[3]*exp(-cf[4]*x)
 
 
-class SharpIRDistSensor_GP2Y0A41SK0F(SharpIRDistSensor):
-  """Simplified interface class for Sharp GP2Y0A41SK0F IR distance sensors."""
+class SharpIRRangingSensor_GP2Y0A41SK0F(SharpIRRangingSensor):
+  """Simplified interface class for Sharp GP2Y0A41SK0F IR ranging sensors."""
 
   def __init__(self, driver, chan):
     """ Requires an already initialised sensor driver instance and the
-        channel assigned to this sensor instance. The distance ('dist_cm')
+        channel assigned to this sensor instance. The range ('range_cm')
         is calibrated for the Sharp GP2Y0A41SK0F (e.g. 0A41SK F 81), using
         coefficients from a double exponential fit.
     """
     super().__init__(driver, chan)
+    self._type = "IR ranging (Sharp)"
     self._coef = array.array('f', [-1.995,12.9, 0.000329958, 93.928, 0.003793])
-    print("Sensor '{0}' on channel #{1} is ready.".format(self._type, chan))
+    tx = "{0}, A/D channel #{1}".format(self._type, chan)
+    print("[{0:>12}] {1:35} ({2}): ok"
+          .format(CHIP_NAME, tx, __version__))
 
 # ----------------------------------------------------------------------------

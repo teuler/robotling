@@ -9,6 +9,7 @@
 # 2018-12-23, v1.2, added `verbose` to print timing information to help
 #                   setting up a new servo (range). Now also handles inverted
 #                   angle ranges.
+# 2018-12-23, v1.3, max duty cycle bug fixed.
 # ----------------------------------------------------------------------------
 import array
 
@@ -20,14 +21,14 @@ elif platform.ID == platform.ENV_CPY_SAM51:
 else:
   print("ERROR: No matching hardware libraries in `platform`.")
 
-__version__ = "0.1.2.0"
+__version__ = "0.1.3.0"
 
 # ----------------------------------------------------------------------------
 class Servo(object):
   """Simplified interface class for servos."""
 
-  def __init__(self, pin, freq=50, us_range=[600, 2400], ang_range=[0, 180],
-               verbose=False):
+  def __init__(self, pin, freq=50, us_range=[600, 2400],
+               ang_range=[0, 180], verbose=False):
     """ Initialises the pin that connects to the servo, with `pin` as a pin
         number, the frequency `freq` of the signal (in Hz), the minimun
         and maximum supported timing (`us_range`), and the respective angular
@@ -70,6 +71,14 @@ class Servo(object):
     """
     self._write_us(0)
 
+  def deinit(self):
+    """ Deinitialize PWM for given pin
+    """
+    try:
+      self._pwm.deinit()
+    except:
+      pass
+
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def _write_us(self, t_us):
     t  = self._t_us
@@ -82,13 +91,11 @@ class Servo(object):
     else:
       t = min(r[1], max(r[0], t_us))
       if not self._invert:
-        d = t *1024 *self._freq // 1000000
+        d = t *dio.MAX_DUTY *self._freq // 1000000
       else:
-        d = (r[1] -t +r[0]) *1024 *self._freq // 1000000
+        d = (r[1] -t +r[0]) *dio.MAX_DUTY *self._freq // 1000000
       self._pwm.duty = d
       if self._verbose:
         print("angle={0}°, t_us={1}, duty={2}".format(self._angle, t_us, d))
-
-
 
 # ----------------------------------------------------------------------------

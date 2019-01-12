@@ -24,6 +24,7 @@
 # 2018-12-22, reorganised into a module with the class `Hexbug` and a simpler
 #             main program file (`main.py`). All hardware-related settings
 #             moved to separate file (`hexbug_config-py`)
+# 2019-01-01, vl6180x time-of-flight distance sensor support added
 # ----------------------------------------------------------------------------
 import array
 import random
@@ -34,7 +35,6 @@ from robotling import Robotling
 from robotling_board_version import BOARD_VER
 from motors.dc_motor import DCMotor
 from motors.servo import Servo
-from sensors.sharp_ir_distance import SharpIRDistSensor_GP2Y0A41SK0F
 from misc.helpers import TemporalFilter
 from hexbug_config import *
 
@@ -69,14 +69,18 @@ class HexBug(Robotling):
   def __init__(self, devices):
     super().__init__(devices)
 
-    # Add the servo that moves the IR distance sensor up and down
-    self.ServoDistSensor = Servo(rb.DIO0, us_range=[MIN_US_SERVO, MAX_US_SERVO],
-                                 ang_range=[MIN_DIST_SERVO, MAX_DIST_SERVO])
-
-    # Add IR distance sensor and make sure that for speed reasons only the
-    # connected sensor is updated
-    self.SensorDistA = SharpIRDistSensor_GP2Y0A41SK0F(self._MCP3208, 0)
-    self._MCP3208.channelMask = 0b00000001
+    # Check if VL6180X time-of-flight ranging sensor is present, if not, add
+    # analog IR ranging sensor (expected to be connected to A/D channel #0)
+    try:
+      self.RangingSensor = self._VL6180X
+      if not self.RangingSensor.isReady:
+        raise AttributeError
+    except:
+      from sensors.sharp_ir_ranging import SharpIRRangingSensor_GP2Y0A41SK0F
+      self.RangingSensor = SharpIRRangingSensor_GP2Y0A41SK0F(self._MCP3208,
+                                                             AI_CH_IR_RANGING)
+      self._MCP3208.channelMask |= 0x01 << AI_CH_IR_RANGING
+    print("Using {0} as ranging sensor".format(self.RangingSensor.name))
 
     # Define scan positions to cover the ground before the robot. Currently,
     # the time the motor is running (in [s]) is used to define angular
@@ -84,6 +88,11 @@ class HexBug(Robotling):
     self._distData = array.array("f", [0] *MAX_IR_SCAN_POS)
     self._scanPos  = [-450, 500, -250]
     self.onTrouble = False
+
+    # Add the servo that moves the ranging sensor up and down
+    self.ServoRangingSensor = Servo(DO_CH_DIST_SERVO,
+                                    us_range=[MIN_US_SERVO, MAX_US_SERVO],
+                                    ang_range=[MIN_DIST_SERVO, MAX_DIST_SERVO])
 
     # Add motors
     self.MotorWalk = DCMotor(self._motorDriver, drv8835.MOTOR_A)
@@ -98,6 +107,11 @@ class HexBug(Robotling):
 
     # Flag that indicates when the robot should stop moving
     self.onHold = False
+
+    # If to use compass, initialize target heading
+    if USE_COMPASS:
+      self._targetHead = self.Compass.getHeading()
+      self._turnBias   = 0
 
     # Create filters for smoothing the pitch and roll readings
     self.PitchFilter = TemporalFilter(8, "f", 6)
@@ -124,9 +138,8 @@ class HexBug(Robotling):
       # Stop motors
       self.MotorTurn.speed = 0
       self.MotorWalk.speed = 0
-      self.ServoDistSensor.off()
+      self.ServoRangingSensor.off()
       self.state = STATE_ON_HOLD
-
     '''
     wAv = self.walkLoadFilter.mean(self._MCP3208.data[6])
     tAv = self.turnLoadFilter.mean(self._MCP3208.data[7])
@@ -148,17 +161,29 @@ class HexBug(Robotling):
     """ Acquires distance data at the scan positions, currently given in motor
         run time (in [s]). Returns -1=obstacle, 1=cliff, and 0=none.
     """
+    # If compass is used, determine current offset from target heading and
+    # set a new bias (in [ms]) by which the head position is corrected. This
+    # is done by biasing the turning time when scanning for obstacles
+    if USE_COMPASS:
+      dh = self.Compass.getHeading() -self._targetHead
+      if abs(dh) > HEAD_ADJUST_THR:
+        self._turnBias = dh *HEAD_ADJUST_FACT
+
     o = False
     c = False
     for iPos, Pos in enumerate(self._scanPos):
+      bias = self._turnBias if USE_COMPASS else 0
       self.MotorTurn.speed = SPEED_SCAN *(-1,1)[Pos < 0]
-      self.spin_ms(abs(Pos))
+      self.spin_ms(abs(Pos) +bias)
       self.MotorTurn.speed = 0
       self.spin_ms(10)
-      d = self.SensorDistA.dist_cm
+      d = self.RangingSensor.range_cm
       self._distData[iPos] = d
       o = o or (d < DIST_OBST_CM)
       c = c or (d > DIST_CLIFF_CM)
+
+    if USE_COMPASS:
+      print(bias, self._targetHead)
     return 1 if c else -1 if o else 0
 
 
@@ -185,29 +210,34 @@ class HexBug(Robotling):
         dir  = -1 if dYaw < 0 else 1
         pit += random.randint(-10,15)
         pit  = min(max(0, pit), maxPit)
-        self.ServoDistSensor.angle = pit
+        self.ServoRangingSensor.angle = pit
         self.MotorTurn.speed = SPEED_TURN *dir
         self.spin_ms(abs(dYaw))
         self.MotorTurn.speed = 0
         self.spin_ms(random.randint(0, 500))
+
     finally:
       # Stop head movement, if any, move the IR sensor back into scan
       # position and change back state
       self.MotorTurn.speed = 0
-      self.ServoDistSensor.angle = SCAN_DIST_SERVO
+      self.ServoRangingSensor.angle = SCAN_DIST_SERVO
       self.state = prevState
+
+      # If compass is used, set new target heading
+      if USE_COMPASS:
+        self._targetHead = self.Compass.getHeading()
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def getDist(self, angle=0, trials=1):
     """ Test function to determine the relevant IR distances.
-        Moves IR distance sensor to "angle" and measures/prints distance
+        Moves IR ranging sensor to "angle" and measures/prints distance
         "trial" times.
     """
-    self.ServoDistSensor.angle = angle
+    self.ServoRangingSensor.angle = angle
     self.spin_ms(200)
     for i in range(trials):
       self.update()
-      print("{0} cm".format(self.SensorDistA.dist_cm))
+      print("{0} cm".format(self.RangingSensor.range_cm))
       self.spin_ms(0 if trials <= 1 else 250)
 
 # ----------------------------------------------------------------------------

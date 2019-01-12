@@ -21,7 +21,7 @@ def main():
   r.spin_ms(period_ms=TM_PERIOD, callback=r.housekeeper)
 
   # Angle the IR sensor towards floor in front
-  r.ServoDistSensor.angle = SCAN_DIST_SERVO
+  r.ServoRangingSensor.angle = SCAN_DIST_SERVO
   r.spin_ms(100)
 
   # Loop ...
@@ -88,6 +88,11 @@ def main():
             r.spin_ms(SPEED_TURN_DELAY*2)
             r.MotorTurn.speed = 0
 
+          # If compass is used and a heading was chosen (because of cliff or
+          # obstacle), save this as new target heading
+          if r.onTrouble != 0 and USE_COMPASS:
+            r._targetHead = r.Compass.getHeading()
+
         finally:
           # Make sure the robotling board get updated at least once per loop
           r.spin_ms()
@@ -97,7 +102,7 @@ def main():
 
   finally:
     # Make sure that robot is powered down
-    r.ServoDistSensor.off()
+    r.ServoRangingSensor.off()
     r.powerDown()
     r.printReport()
 

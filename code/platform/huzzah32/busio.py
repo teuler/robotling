@@ -17,9 +17,15 @@ __version__ = "0.1.0.0"
 class SPIBus(object):
   """SPI bus access."""
 
-  def __init__(self, freq, sc, mo, mi):
-    self._spi = SPI(2)
-    self._spi.init(baudrate=freq, sck=Pin(sc), mosi=Pin(mo), miso=Pin(mi))
+  def __init__(self, freq, sc, mo, mi=None, spidev=2):
+    self._spi = SPI(spidev)
+    if mi == None:
+      self._spi.init(baudrate=freq, sck=Pin(sc), mosi=Pin(mo))
+    else:
+      self._spi.init(baudrate=freq, sck=Pin(sc), mosi=Pin(mo), miso=Pin(mi))
+
+  def deinit(self):
+    self._spi.deinit()
 
   @property
   def bus(self):
@@ -27,6 +33,9 @@ class SPIBus(object):
 
   def write_readinto(self, wbuf, rbuf):
     self._spi.write_readinto(wbuf, rbuf)
+
+  def write(self, wbuf):
+    self._spi.write(wbuf)
 
 # ----------------------------------------------------------------------------
 class I2CBus(object):
@@ -48,8 +57,14 @@ class I2CBus(object):
   def deviceAddrList(self):
     return self._i2cDevList
 
+  def write(self, buf):
+    self._i2c.write(buf)
+
   def writeto(self, addr, buf, stop_=True):
-    self._i2c.writeto(addr, buf, stop=stop_)
+    self._i2c.writeto(addr, buf, stop_)
+
+  def readinto(self, buf):
+    self._i2c.readinto(buf)
 
   def readfrom_into(self, addr, buf):
     self._i2c.readfrom_into(addr, buf)

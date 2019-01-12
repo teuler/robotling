@@ -32,10 +32,11 @@ class Compass(SensorBase):
       self._heading = 0.0
       self._pitch   = 0.0
       self._roll    = 0.0
-      self._type    = "Compass ({0})".format(driver.name)
+      self._type    = "Compass"
 
-    print("{0} {1}.".format(self._type,
-                           "is ready" if driver.isReady else "not found"))
+    print("[{0:>12}] {1:35} ({2}): {3}"
+          .format(driver.name, self._type, __version__,
+                  "ok" if driver._isReady else "FAILED"))
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   #@timed_function
@@ -81,7 +82,6 @@ class Compass(SensorBase):
         if available.
     """
     if self.getHeading(tilt=True, calib=calib) == rb.RBL_ERR_DEVICE_NOT_READY:
-      print("HERE")
       return (rb.RBL_ERR_DEVICE_NOT_READY, 0, 0, 0)
     else:
       return (rb.RBL_OK, self._heading, self._pitch, self._roll)

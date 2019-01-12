@@ -40,7 +40,7 @@ class MCP3208(object):
     self._pinCS = dio.DigitalOut(pinCS, value=True)
     self._channelMask = 0xff
 
-    print("[{0:>7}] {1:27} ({2}): ok"
+    print("[{0:>12}] {1:35} ({2}): ok"
           .format(CHIP_NAME, "8-channel A/D converter", __version__))
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

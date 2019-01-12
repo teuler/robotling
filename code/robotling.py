@@ -16,6 +16,7 @@
 #                   flow and, hence, inconsistencies) and b) makes the code
 #                   compatible to CircuitPython, which does not (yet?) support
 #                   timers.
+# 2019-01-01, v1.4  vl6180x time-of-flight distance sensor support added
 #
 # Open issues:
 # - NeoPixels don't yet quite as expected with the LoBo ESP32 MicroPython
@@ -48,7 +49,7 @@ else:
   from platform.m4ex.neopixel import NeoPixel
   import platform.m4ex.time as time
 
-__version__ = "0.1.3.0"
+__version__ = "0.1.4.0"
 
 # ----------------------------------------------------------------------------
 class Robotling():
@@ -100,14 +101,14 @@ class Robotling():
     """ Additional onboard components can be listed in `devices` and, if known,
         will be initialized
     """
-    print("Robotling (board v{0:.2f}, software v{1})"
-          .format(BOARD_VER/100, __version__))
-    print("... running MicroPython {0} ({1})"
-          .format(platform.sysInfo[2], platform.sysInfo[0]))
+    print("Robotling (board v{0:.2f}, software v{1}) w/ MicroPython {2} ({3})"
+          .format(BOARD_VER/100, __version__, platform.sysInfo[2],
+                  platform.sysInfo[0]))
 
     print("Initializing ...")
 
-    # Define a unique ID
+    # Initialize some variables
+    self._devices = devices
     self._ID = platform.GUID
 
     # Initialize on-board (feather) hardware
@@ -122,14 +123,6 @@ class Robotling():
     self._motorDriver = drv8835.DRV8835(drv8835.MODE_PH_EN,
                                         rb.A_ENAB, rb.A_PHASE,
                                         rb.B_ENAB, rb.B_PHASE)
-
-    # Initialize Neopixel (connector)
-    self._NPx = NeoPixel(rb.NEOPIX, 1)
-    self._NPx0_RGB = bytearray([0]*3)
-    self._NPx0_curr = array.array("i", [0,0,0])
-    self._NPx0_step = array.array("i", [0,0,0])
-    self.NeoPixelRGB = 0
-    print("NeoPixel ready.")
 
     # Get I2C bus
     self._I2C = busio.I2CBus(rb.I2C_FRQ, rb.SCL, rb.SDA)
@@ -148,6 +141,19 @@ class Robotling():
       # Very nice compass module with tilt-compensation built in
       from sensors.compass_cmps12 import Compass
       self.Compass = Compass(self._I2C)
+
+    if "vl6180x" in devices:
+      # Time-of-flight distance sensor
+      from sensors.adafruit_tof_ranging import AdafruitVL6180XRangingSensor
+      self._VL6180X = AdafruitVL6180XRangingSensor(i2c=self._I2C)
+
+    # Initialize Neopixel (connector)
+    self._NPx = NeoPixel(rb.NEOPIX, 1)
+    self._NPx0_RGB = bytearray([0]*3)
+    self._NPx0_curr = array.array("i", [0,0,0])
+    self._NPx0_step = array.array("i", [0,0,0])
+    self.NeoPixelRGB = 0
+    print("NeoPixel ready.")
 
     # Initialize spin function-related variables
     self._spin_period_ms = 0
