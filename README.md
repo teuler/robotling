@@ -15,3 +15,6 @@ Please check out the [video](https://youtu.be/wil41YtIeN8) and find the details 
   Eliminated the need for a timer. Added `spin_ms()`, which needs to be called once per loop and instead of `sleep_ms()` to keep board
   updated. This solution is superior to the use of a timer, because (i) it is deterministic (avoids randomly interrupting the program 
   flow and, hence, inconsistencies) and (ii) makes the code compatible to CircuitPython, which does not (yet?) support timers.
+* 2019-01-12 
+  - A few bug fixes, more drivers (dotstar, VL6180X). 
+  - Works now also with the M4 Express Feather from Adafruit (and CircuitPython).
