@@ -7,7 +7,8 @@ Please check out the [video](https://youtu.be/wil41YtIeN8) and find the details 
 ### Release Notes
 
 * 2019-03-02
-  - New pictures
+  - New pictures, annotated pictures of board v1.2
+  - some new text on memory and performance
 * 2019-01-12 
   - A few bug fixes
   - More drivers (dotstar, VL6180X). 
