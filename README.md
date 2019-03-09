@@ -6,6 +6,9 @@ Please check out the [video](https://youtu.be/wil41YtIeN8) and find the details 
 
 ### Release Notes
 
+* 2019-03-09
+  - New pictures
+  - A new wiki page with extentions and modifications
 * 2019-03-02
   - New pictures, annotated pictures of board v1.2
   - some new text on memory and performance
