@@ -1,6 +1,6 @@
-[<img align="right" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_4857_sm.png" alt="Drawing" width="320"/>](https://github.com/teuler/robotling/blob/master/pictures/IMG_4857.png)
-
 # robotling
+
+[<img align="right" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_4857_sm.png" alt="Drawing" width="320"/>](https://github.com/teuler/robotling/blob/master/pictures/IMG_4857.png)
 
 "robotling" is a simple circuit board to control small robots.
 
