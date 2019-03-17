@@ -8,7 +8,8 @@ Please check out the [video](https://youtu.be/wil41YtIeN8) and find the details 
 
 ### Release Notes
 
-* 2019-03-09
+* 2019-03-17 - Release v1.5
+  - Some code improvements (handing devices, cleaning up, tested w/ MicroPython v1.10)
   - New pictures
   - A new wiki page with extentions and modifications
 * 2019-03-02
