@@ -98,7 +98,7 @@ class HexBug(Robotling):
     self.MotorWalk = DCMotor(self._motorDriver, drv8835.MOTOR_A)
     self.MotorTurn = DCMotor(self._motorDriver, drv8835.MOTOR_B)
 
-    if BOARD_VER >= 120:
+    if BOARD_VER >= 120 and USE_LOAD_SENSING:
       # Create filters to smooth the load readings from the motors and change
       # analog sensor update mask accordingly
       self.walkLoadFilter = TemporalFilter(5)
@@ -140,11 +140,12 @@ class HexBug(Robotling):
       self.MotorWalk.speed = 0
       self.ServoRangingSensor.off()
       self.state = STATE_ON_HOLD
-    '''
-    wAv = self.walkLoadFilter.mean(self._MCP3208.data[6])
-    tAv = self.turnLoadFilter.mean(self._MCP3208.data[7])
-    print("walk={0:.0f}, turn={1:.0f}".format(wAv, tAv))
-    '''
+
+    if USE_LOAD_SENSING:
+      wAv = self.walkLoadFilter.mean(self._MCP3208.data[6])
+      tAv = self.turnLoadFilter.mean(self._MCP3208.data[7])
+      print("[{0:30}] [{1:30}]".format("*" *int(wAv/30), "#" *int(tAv/30)))
+
     # Change NeoPixel according to state
     i = self.state *3
     self.startPulseNeoPixel(STATE_COLORS[i:i+3])
@@ -184,6 +185,7 @@ class HexBug(Robotling):
 
     if USE_COMPASS:
       print(bias, self._targetHead)
+      # ...
     return 1 if c else -1 if o else 0
 
 

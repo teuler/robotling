@@ -75,8 +75,8 @@ elif platform.ID == platform.ENV_CPY_SAM51:
   B_PHASE = board.A1
 
   ENAB_5V = board.RX
-
   RED_LED = board.D13
+  
   ADC_BAT = board.VOLTAGE_MONITOR
 
   if BOARD_VER == 100:

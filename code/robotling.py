@@ -17,6 +17,7 @@
 #                   compatible to CircuitPython, which does not (yet?) support
 #                   timers.
 # 2019-01-01, v1.4  vl6180x time-of-flight distance sensor support added
+# 2019-01-20, v1.5  DotStar feather support added
 #
 # Open issues:
 # - NeoPixels don't yet quite as expected with the LoBo ESP32 MicroPython
@@ -26,6 +27,7 @@
 #   With the CMPS12 module, the compass works just fine.
 # ----------------------------------------------------------------------------
 import array
+import random
 from micropython import const
 import robotling_board as rb
 import driver.mcp3208 as mcp3208
@@ -49,7 +51,7 @@ else:
   from platform.m4ex.neopixel import NeoPixel
   import platform.m4ex.time as time
 
-__version__ = "0.1.4.0"
+__version__ = "0.1.5.0"
 
 # ----------------------------------------------------------------------------
 class Robotling():
@@ -127,6 +129,11 @@ class Robotling():
     # Get I2C bus
     self._I2C = busio.I2CBus(rb.I2C_FRQ, rb.SCL, rb.SDA)
 
+    self.Compass = None
+    self._VL6180X = None
+    self._DS = None
+
+
     # Initialize further devices depending on the selected onboard components
     # (e.g. which type of magnetometer/accelerometer/gyro, etc.)
     if "lsm303" in devices:
@@ -146,6 +153,14 @@ class Robotling():
       # Time-of-flight distance sensor
       from sensors.adafruit_tof_ranging import AdafruitVL6180XRangingSensor
       self._VL6180X = AdafruitVL6180XRangingSensor(i2c=self._I2C)
+
+    if "dotstar_feather" in devices:
+      # DotStar array is mounted
+      from driver.dotstar import DotStar
+      self._DS = DotStar(0,0, 6*12, auto_write=False, spi=self._SPI)
+      self._iDS = 0
+      self._DS[0] = 0
+      self._DS.show()
 
     # Initialize Neopixel (connector)
     self._NPx = NeoPixel(rb.NEOPIX, 1)
@@ -193,7 +208,7 @@ class Robotling():
       d_us = dur_ms *1000
 
       if dur_ms > 0 and dur_ms < (p_ms -APPROX_UPDATE_DUR_MS):
-        time.sleep_ms(dur_ms)
+        time.sleep_ms(int(dur_ms))
 
       elif dur_ms >= (p_ms -APPROX_UPDATE_DUR_MS):
         # Sleep for given time while updating the board regularily; start by
@@ -327,5 +342,15 @@ class Robotling():
         if self._NPx0_curr[i] < abs(self._NPx0_step[i]):
           self._NPx0_step[i] = abs(self._NPx0_step[i])
       self._NPx.set(self._NPx0_curr, 0, True)
+
+      if not self._DS == None:
+        self._DS[random.randint(0, 71)] = self._NPx0_curr
+        """
+        self._DS[self._iDS] = self._NPx0_curr
+        self._iDS += 1
+        if self._iDS >= len(self._DS):
+          self._iDS = 0
+        """
+        self._DS.show()
 
 # ----------------------------------------------------------------------------

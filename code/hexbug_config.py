@@ -35,7 +35,10 @@ USE_COMPASS      = const(0)    #
 HEAD_ADJUST_FACT = const(-1)   #
 HEAD_ADJUST_THR  = const(5)    # [°]
 
+USE_LOAD_SENSING = const(0)    # AI channels #6,7 for load-sensing
+
 # Additional devices plugged into the robotling board
 MORE_DEVICES     = ["compass_cmps12"]
 #MORE_DEVICES    = ["compass_cmps12", "vl6180x"]
 #MORE_DEVICES    = ["lsm303"]
+#MORE_DEVICES    = ["lsm303", "dotstar_feather"]
