@@ -1,11 +1,16 @@
 # robotling
 
+[<img align="right" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_4857_sm.png" alt="Drawing" width="320"/>](https://github.com/teuler/robotling/blob/master/pictures/IMG_4857.png)
+
 "robotling" is a simple circuit board to control small robots.
 
 Please check out the [video](https://youtu.be/wil41YtIeN8) and find the details in the [wiki](https://github.com/teuler/robotling/wiki). 
 
 ### Release Notes
 
+* 2019-03-09
+  - New pictures
+  - A new wiki page with extentions and modifications
 * 2019-03-02
   - New pictures, annotated pictures of board v1.2
   - some new text on memory and performance
