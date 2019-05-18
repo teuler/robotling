@@ -15,7 +15,7 @@
 # provided by the compass (time-filtered) are checked.
 #
 # The MIT License (MIT)
-# Copyright (c) 2018 Thomas Euler
+# Copyright (c) 2019 Thomas Euler
 # 2018-09-13, first release.
 # 2018-10-29, use pitch/roll to check if robot is tilted.
 # 2018-11-03, some cleaning up and commenting of the code
@@ -25,6 +25,10 @@
 #             main program file (`main.py`). All hardware-related settings
 #             moved to separate file (`hexbug_config-py`)
 # 2019-01-01, vl6180x time-of-flight distance sensor support added
+# 2019-04-07, added new "behaviour" (take a nap)
+# 2019-05-06, now uses `getHeading3D` instead of `getPitchRoll` to determine
+#             if the robot is tilted; the additional compass information
+#             (heading) is saved for later use.
 # ----------------------------------------------------------------------------
 import array
 import random
@@ -52,6 +56,7 @@ STATE_LOOKING    = const(2)
 STATE_ON_HOLD    = const(3)
 STATE_OBSTACLE   = const(4)
 STATE_CLIFF      = const(5)
+STATE_WAKING_UP  = const(6)
 
 # NeoPixel colors (r,g,b) for the different states
 STATE_COLORS     = bytearray((
@@ -60,7 +65,8 @@ STATE_COLORS     = bytearray((
                    40,30,0,    # STATE_LOOKING
                    20,00,50,   # STATE_ON_HOLD
                    90,30,0,    # STATE_OBSTACLE
-                   90,0,30))   # STATE_CLIFF
+                   90,0,30,    # STATE_CLIFF
+                   10,60,60))  # STATE_WAKING_UP
 
 # ----------------------------------------------------------------------------
 class HexBug(Robotling):
@@ -85,8 +91,8 @@ class HexBug(Robotling):
     # Define scan positions to cover the ground before the robot. Currently,
     # the time the motor is running (in [s]) is used to define angular
     # position
-    self._distData = array.array("f", [0] *MAX_IR_SCAN_POS)
-    self._scanPos  = [-450, 500, -250]
+    self._scanPos  = IR_SCAN_POS
+    self._distData = array.array("i", [0] *len(IR_SCAN_POS))
     self.onTrouble = False
 
     # Add the servo that moves the ranging sensor up and down
@@ -97,25 +103,22 @@ class HexBug(Robotling):
     # Add motors
     self.MotorWalk = DCMotor(self._motorDriver, drv8835.MOTOR_A)
     self.MotorTurn = DCMotor(self._motorDriver, drv8835.MOTOR_B)
+    self._turnBias = 0
 
     if BOARD_VER >= 120 and USE_LOAD_SENSING:
       # Create filters to smooth the load readings from the motors and change
       # analog sensor update mask accordingly
       self.walkLoadFilter = TemporalFilter(5)
       self.turnLoadFilter = TemporalFilter(5)
+      self._loadData      = array.array("i", [0]*2)
       self._MCP3208.channelMask |= 0xC0
 
     # Flag that indicates when the robot should stop moving
     self.onHold = False
 
-    # If to use compass, initialize target heading
-    if USE_COMPASS:
-      self._targetHead = self.Compass.getHeading()
-      self._turnBias   = 0
-
     # Create filters for smoothing the pitch and roll readings
-    self.PitchFilter = TemporalFilter(8, "f", 6)
-    self.RollFilter  = TemporalFilter(8, "f", 6)
+    self.PitchFilter = TemporalFilter(8)
+    self.RollFilter  = TemporalFilter(8)
 
     self.tTemp = time.ticks_us()
 
@@ -129,10 +132,12 @@ class HexBug(Robotling):
           pitch/roll provided by the compass
         - Changes also color of NeoPixel depending on the robot's state
     """
+    aid = self._MCP3208.data
+
     # Check if robot is tilted ...
-    epr = self.Compass.getPitchRoll()
-    pAv = self.PitchFilter.mean(epr[1])
-    rAv = self.RollFilter.mean(epr[2])
+    ehpr = self.Compass.getHeading3D()
+    pAv  = self.PitchFilter.mean(ehpr[2])
+    rAv  = self.RollFilter.mean(ehpr[3])
     self.onHold = (abs(pAv) > PIRO_MAX_ANGLE) or (abs(rAv) > PIRO_MAX_ANGLE)
     if self.onHold:
       # Stop motors
@@ -141,10 +146,12 @@ class HexBug(Robotling):
       self.ServoRangingSensor.off()
       self.state = STATE_ON_HOLD
 
+    # Save heading
+    self.currHead = ehpr[1]
+
     if USE_LOAD_SENSING:
-      wAv = self.walkLoadFilter.mean(self._MCP3208.data[6])
-      tAv = self.turnLoadFilter.mean(self._MCP3208.data[7])
-      print("[{0:30}] [{1:30}]".format("*" *int(wAv/30), "#" *int(tAv/30)))
+      self._loadData[0] = int(self.walkLoadFilter.mean(self._MCP3208.data[6]))
+      self._loadData[1] = int(self.turnLoadFilter.mean(self._MCP3208.data[7]))
 
     # Change NeoPixel according to state
     i = self.state *3
@@ -162,32 +169,21 @@ class HexBug(Robotling):
     """ Acquires distance data at the scan positions, currently given in motor
         run time (in [s]). Returns -1=obstacle, 1=cliff, and 0=none.
     """
-    # If compass is used, determine current offset from target heading and
-    # set a new bias (in [ms]) by which the head position is corrected. This
-    # is done by biasing the turning time when scanning for obstacles
-    if USE_COMPASS:
-      dh = self.Compass.getHeading() -self._targetHead
-      if abs(dh) > HEAD_ADJUST_THR:
-        self._turnBias = dh *HEAD_ADJUST_FACT
-
+    b = 0
     o = False
     c = False
+    l = len(self._scanPos) -1
     for iPos, Pos in enumerate(self._scanPos):
-      bias = self._turnBias if USE_COMPASS else 0
+      bias = 0 if iPos < l else b
       self.MotorTurn.speed = SPEED_SCAN *(-1,1)[Pos < 0]
       self.spin_ms(abs(Pos) +bias)
       self.MotorTurn.speed = 0
-      self.spin_ms(10)
-      d = self.RangingSensor.range_cm
+      d = int(self.RangingSensor.range_cm)
       self._distData[iPos] = d
       o = o or (d < DIST_OBST_CM)
       c = c or (d > DIST_CLIFF_CM)
-
-    if USE_COMPASS:
-      print(bias, self._targetHead)
-      # ...
+    self._turnBias = b
     return 1 if c else -1 if o else 0
-
 
   def lookAround(self):
     """ Make an appearance of "looking around"
@@ -195,14 +191,14 @@ class HexBug(Robotling):
     # Stop all motors and change state
     self.MotorWalk.speed = 0
     self.MotorTurn.speed = 0
-    prevState  = self.state
+    prevState = self.state
     self.state = STATE_LOOKING
     maxPit = max(MAX_DIST_SERVO, MIN_DIST_SERVO)
 
     # Move head and IR distance sensor at random, as if looking around
     nSacc = random.randint(4, 10)
-    yaw   = 0
-    pit   = SCAN_DIST_SERVO
+    yaw = 0
+    pit = SCAN_DIST_SERVO
     try:
       for i in range(nSacc):
         if self.onHold:
@@ -217,7 +213,6 @@ class HexBug(Robotling):
         self.spin_ms(abs(dYaw))
         self.MotorTurn.speed = 0
         self.spin_ms(random.randint(0, 500))
-
     finally:
       # Stop head movement, if any, move the IR sensor back into scan
       # position and change back state
@@ -225,9 +220,44 @@ class HexBug(Robotling):
       self.ServoRangingSensor.angle = SCAN_DIST_SERVO
       self.state = prevState
 
-      # If compass is used, set new target heading
-      if USE_COMPASS:
-        self._targetHead = self.Compass.getHeading()
+  def nap(self):
+    """ Take a nap
+    """
+    # Remember state, switch off motors and move sensor arm into neutral
+    prevState = self.state
+    self.state = STATE_WAKING_UP
+    self.housekeeper()
+    self.MotorWalk.speed = 0
+    self.MotorTurn.speed = 0
+    self.ServoRangingSensor.angle = 0
+
+    # Dimm the NeoPixel
+    for i in range(10, -1, -1):
+      self.dimNeoPixel(i/10.0)
+      self.spin_ms(250)
+
+    # "Drop" sensor arm
+    for p in range(0, SCAN_DIST_SERVO, -1):
+      self.ServoRangingSensor.angle = p
+      self.spin_ms(10)
+
+    # Flash NeoPixel ...
+    self.dimNeoPixel(1.0)
+    self.spin_ms(100)
+    self.dimNeoPixel(0.0)
+
+    # ... and enter sleep mode for a random number of seconds
+    self.sleepLightly(random.randint(5, 50))
+
+    # Wake up, resume previous state and move sensor arm into scan position
+    self.state = prevState
+    self.ServoRangingSensor.angle = SCAN_DIST_SERVO
+    self.housekeeper()
+
+    # Bring up NeoPixel again
+    for i in range(0, 11):
+      self.dimNeoPixel(i/10.0)
+      self.spin_ms(250)
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def getDist(self, angle=0, trials=1):

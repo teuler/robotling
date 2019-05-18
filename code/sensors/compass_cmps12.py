@@ -6,6 +6,9 @@
 # The MIT License (MIT)
 # Copyright (c) 2018 Thomas Euler
 # 2018-10-30, v1
+# 2019-05-06, `getPitchRoll` now returns 4-element tuple, with a -1 at
+#             position 1 to be compatible with the data format returned
+#             by `getHeading3D`
 # ----------------------------------------------------------------------------
 try:
   import struct
@@ -140,9 +143,9 @@ class Compass(SensorBase):
     self._read_bytes(_ADDRESS_CMPS12, _REG_PITCH_8BIT_ANGLE, buf)
     pit, rol = struct.unpack_from('>bb', buf[0:2])
     if radians:
-      return (rb.RBL_OK, radians(pit), radians(rol))
+      return (rb.RBL_OK, -1, radians(pit), radians(rol))
     else:
-      return (rb.RBL_OK, pit, rol)
+      return (rb.RBL_OK, -1, pit, rol)
 
 
   @property

@@ -5,13 +5,14 @@
 # For decription, see `hexbug.py`
 #
 # The MIT License (MIT)
-# Copyright (c) 2018 Thomas Euler
+# Copyright (c) 2019 Thomas Euler
 # 2018-12-22, reorganised into a module with the class `Hexbug` and a simpler
 #             main program file (`main.py`). All hardware-related settings
 #             moved to separate file (`hexbug_config-py`)
 # 2018-12-28, adapted to using the new `spin_ms()` function to keep the
 #             robotling board updated; does not require a Timer anymore.
 #             For details, see `robotling.py`.
+# 2019-04-07, added new "behaviour" (take a nap)
 # ----------------------------------------------------------------------------
 from hexbug import *
 
@@ -41,8 +42,13 @@ def main():
             continue
 
           # Sometines just look around
-          if random.randint(0,15) == 0:
+          if random.randint(1,1000) <= DO_LOOK_AROUND:
             r.lookAround()
+            continue
+
+          # Sleep sometimes
+          if random.randint(1,1000) <= DO_TAKE_NAPS:
+            r.nap()
             continue
 
           # Check if obstacle or cliff
@@ -88,11 +94,6 @@ def main():
             r.spin_ms(SPEED_TURN_DELAY*2)
             r.MotorTurn.speed = 0
 
-          # If compass is used and a heading was chosen (because of cliff or
-          # obstacle), save this as new target heading
-          if r.onTrouble != 0 and USE_COMPASS:
-            r._targetHead = r.Compass.getHeading()
-
         finally:
           # Make sure the robotling board get updated at least once per loop
           r.spin_ms()
@@ -113,5 +114,6 @@ r = HexBug(MORE_DEVICES)
 # Call main
 if __name__ == "__main__":
   main()
+
 
 # ----------------------------------------------------------------------------

@@ -1,15 +1,27 @@
-# Blue HexBug
-from micropython import const
-from robotling_board import *
+# ---------------------------------------------------------------------
+# hexbug_config.py
+# Configuration file for HexBug robotling
+#
+# *** Blue HexBug ***
+# ---------------------------------------------------------------------
+# Allow to use robotling GUI running on a PC to use the same
+# configuration file as the MicroPython code
+try:
+  from micropython import const
+  from robotling_board import *
+except ModuleNotFoundError:
+  const = lambda x : x
+  DIO0  = None
 
 # Tilt-sensing
 PIRO_MAX_ANGLE   = const(25)   # Maximal tilt (i.e. pitch/roll) allowed
                                # .. before robot responds
 # Obstacle/cliff detection
+# (Scan positions for obstacles/cliffs checks as head turn durations list [ms])
+IR_SCAN_POS      = [-450, 500, -250]
 AI_CH_IR_RANGING = const(0)    # Analog-In channel for IR distance sensor
-MAX_IR_SCAN_POS  = const(3)    # Scan positions to check for obstacles/cliffs
 DIST_OBST_CM     = const(7)    # Lower distances are considered obstacles
-DIST_CLIFF_CM    = const(20)   # Farer distances are considered cliffs
+DIST_CLIFF_CM    = const(16)   # Farer distances are considered cliffs
 
 # Servo settings
 DO_CH_DIST_SERVO = DIO0        # Digital-Out channel for distance sensor servo
@@ -28,14 +40,15 @@ SPEED_WALK       = const(-75)  # -55,-70 .. for walking forwards
 SPEED_TURN       = const(35)   # +25,+30 .. for turning head when changing direction
 SPEED_TURN_DELAY = const(900)  #
 SPEED_BACK_DELAY = const(500)  #
-SPEED_SCAN       = const(40)   # .. for turning head when scanning
+SPEED_SCAN       = const(55)   # 40 .. for turning head when scanning
 
-# Options, depending on sensor complement
-USE_COMPASS      = const(0)    #
-HEAD_ADJUST_FACT = const(-1)   #
-HEAD_ADJUST_THR  = const(5)    # [°]
+# Options, depending on board and sensor complement
+USE_LOAD_SENSING = const(0)    # Use AI channels #6,7 for load-sensing (> v1.1)
+USE_POWER_SHD    = const(0)    # Use ENAB_5V (voltage regulator off)   (> v1.1)
 
-USE_LOAD_SENSING = const(0)    # AI channels #6,7 for load-sensing
+# Options, "behaviours"
+DO_LOOK_AROUND   = const(30)   # Use "looking around", as probabilty, [‰]
+DO_TAKE_NAPS     = const(10)   # Use "nap", as probability, [‰]
 
 # Additional devices plugged into the robotling board
 MORE_DEVICES     = ["compass_cmps12"]

@@ -10,6 +10,9 @@
 # 2018-09-26, v1
 # 2018-10-26, Non-calibrated, non-tilt corrected compass readout added;
 #             the calibrated readout is still unfinished
+# 2019-05-06, `getPitchRoll` now returns 4-element tuple, with a -1 at
+#             position 1 to be compatible with the data format returned
+#             by `getHeading3D`
 # ----------------------------------------------------------------------------
 import array
 import robotling_board as rb
@@ -17,7 +20,7 @@ from math import pi, sin, cos, asin, acos, atan2, sqrt
 from sensors.sensor_base import SensorBase
 from misc.helpers import timed_function
 
-__version__ = "0.1.0.0"
+__version__ = "0.1.1.0"
 
 # ----------------------------------------------------------------------------
 class Compass(SensorBase):
@@ -89,7 +92,9 @@ class Compass(SensorBase):
 
   #@timed_function
   def getPitchRoll(self, radians=False):
-    """ Returns error code, pitch and roll in [°] as a tuple
+    """ Returns error code, pitch and roll in [°] as a 4-element tuple.
+        Note that the second element is -1, such that the data format
+        is compatible with that returned by `getHeading3D`
     """
     if self._driver == None:
       return (rb.RBL_ERR_DEVICE_NOT_READY, 0, 0)
@@ -108,8 +113,8 @@ class Compass(SensorBase):
     self._pitch = p *180/pi
     self._roll  = r *180/pi
     if radians:
-      return (rb.RBL_OK, p, r)
+      return (rb.RBL_OK, -1, p, r)
     else:
-      return (rb.RBL_OK, self._pitch, self._roll)
+      return (rb.RBL_OK, -1, self._pitch, self._roll)
 
 # ----------------------------------------------------------------------------

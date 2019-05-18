@@ -18,6 +18,7 @@
 #                   timers.
 # 2019-01-01, v1.4  vl6180x time-of-flight distance sensor support added
 # 2019-01-20, v1.5  DotStar feather support added
+# 2018-03-25, v1.6  deepsleep/lightsleep support for ESP32
 #
 # Open issues:
 # - NeoPixels don't yet quite as expected with the LoBo ESP32 MicroPython
@@ -42,6 +43,7 @@ if platform.ID == platform.ENV_ESP32_UPY:
   import platform.huzzah32.aio as aio
   import platform.huzzah32.busio as busio
   from platform.huzzah32.neopixel import NeoPixel
+  from machine import deepsleep, lightsleep
   import time
 else:
   import board
@@ -51,7 +53,7 @@ else:
   from platform.m4ex.neopixel import NeoPixel
   import platform.m4ex.time as time
 
-__version__ = "0.1.5.0"
+__version__ = "0.1.6.0"
 
 # ----------------------------------------------------------------------------
 class Robotling():
@@ -60,6 +62,7 @@ class Robotling():
   Objects:
   -------
   - onboardLED     : on(), off()
+  - power5V        : on(), off()
   - Compass        : see sensors.compass*.py
 
   Methods:
@@ -75,6 +78,7 @@ class Robotling():
     Switch off NeoPixel, motor driver, etc.
   - startPulseNeoPixel()
     Set color of NeoPixel at RBL_NEOPIX and enable pulsing
+  - sleepLightly(), sleepDeeply()
 
   Properties:
   ----------
@@ -116,6 +120,9 @@ class Robotling():
     # Initialize on-board (feather) hardware
     self.onboardLED = dio.DigitalOut(rb.RED_LED, value=False)
     self._adc_battery = aio.AnalogIn(rb.ADC_BAT)
+
+    if BOARD_VER >= 120:
+      self.power5V = dio.DigitalOut(rb.ENAB_5V, value=True)
 
     # Initialize analog sensor driver
     self._SPI = busio.SPIBus(rb.SPI_FRQ, rb.SCK, rb.MOSI, rb.MISO)
@@ -275,6 +282,25 @@ class Robotling():
     print("---")
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  def sleepDeeply(self, dur_s=10, keep5V=False):
+    """ Switch off 5V power supply, if requested, and send microcontroller to
+        deep sleep. After the given time, the controller reboots.
+        (Works currently only for ESP32 and for robotling boards >= v1.2)
+    """
+    if BOARD_VER >= 120 and platform.ID == platform.ENV_ESP32_UPY:
+      self.power5V.value = keep5V
+      deepsleep(dur_s *1000)
+
+  def sleepLightly(self, dur_s=10, keep5V=False):
+    """ Switch off 5V power supply, if requested, and send microcontroller to
+        light sleep. After the given time, the code excecution continues.
+        (Works currently only for ESP32 and for robotling boards >= v1.2)
+    """
+    if BOARD_VER >= 120 and platform.ID == platform.ENV_ESP32_UPY:
+      self.power5V.value = keep5V
+      lightsleep(dur_s *1000)
+      self.power5V.on()
+
   def powerDown(self):
     """ Switch off NeoPixel, motor driver, etc.
     """
@@ -329,6 +355,10 @@ class Robotling():
       self._NPx0_RGB = rgb
       self._NPx.set(rgb, 0, True)
       self._NPx0_pulse = True
+      self._NPx0_fact = 1.0
+
+  def dimNeoPixel(self, factor=1.0):
+    self._NPx0_fact = max(min(1, factor), 0)
 
   def _pulseNeoPixel(self):
     """ Update pulsing, if enabled
@@ -341,16 +371,14 @@ class Robotling():
           self._NPx0_step[i] *= -1
         if self._NPx0_curr[i] < abs(self._NPx0_step[i]):
           self._NPx0_step[i] = abs(self._NPx0_step[i])
+
+        if self._NPx0_fact < 1.0:
+          self._NPx0_curr[i] = int(self._NPx0_curr[i] *self._NPx0_fact)
+
       self._NPx.set(self._NPx0_curr, 0, True)
 
       if not self._DS == None:
         self._DS[random.randint(0, 71)] = self._NPx0_curr
-        """
-        self._DS[self._iDS] = self._NPx0_curr
-        self._iDS += 1
-        if self._iDS >= len(self._DS):
-          self._iDS = 0
-        """
         self._DS.show()
 
 # ----------------------------------------------------------------------------
