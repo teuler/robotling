@@ -8,6 +8,12 @@ Please check out the [video](https://youtu.be/wil41YtIeN8) and find the details 
 
 ### Release Notes
 
+* 2019-05-18 - Release v1.6
+  - Added new "behaviour" (take a nap) based on deepsleep/lightsleep support for ESP32
+  - Cleaned up the code
+  - Changed `hexbug_config.py`to make it also standard Python compatible (for future extension)
+  - Now uses `getHeading3D` instead of `getPitchRoll` to determine if the robot is tilted; the additional 
+    compass information (heading) is saved (for future extension).
 * 2019-03-17 - Release v1.5
   - Some code improvements (handing devices, cleaning up)
   - Tested w/ MicroPython v1.10
