@@ -14,6 +14,7 @@ Please check out the [video](https://youtu.be/wil41YtIeN8) and find the details 
   - Changed `hexbug_config.py`to make it also standard Python compatible (for future extension)
   - Now uses `getHeading3D` instead of `getPitchRoll` to determine if the robot is tilted; the additional 
     compass information (heading) is saved (for future extension).
+  - Driver for LSM9DS0 magnetometer/accelerometer/gyroscope added.
 * 2019-03-17 - Release v1.5
   - Some code improvements (handing devices, cleaning up)
   - Tested w/ MicroPython v1.10
@@ -35,3 +36,8 @@ Please check out the [video](https://youtu.be/wil41YtIeN8) and find the details 
 * 2018-11-29 - Release v1.1  
   First complete version for board v1.0 and huzzah32
 * 2018-11-18 - Initial release 
+
+### Unresolved Issues
+
+  - Tilt correction and calibration for LSM303 and LSM9DS0 compass function is not yet implemented.
+
