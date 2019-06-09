@@ -3,9 +3,9 @@
 # Class for LSM303 accelerometer/magnetometer driver
 #
 # The MIT License (MIT)
-# Copyright (c) 2018 Thomas Euler
+# Copyright (c) 2018-19 Thomas Euler
 # 2018-09-13, v1
-# 2016-10-26, bug fix sequence of magnetometer values from I2C call is x,z,y
+# 2018-10-26, bug fix sequence of magnetometer values from I2C call is x,z,y
 #
 # Based on the CircuitPython driver:
 # https://github.com/adafruit/Adafruit_CircuitPython_LSM303
@@ -147,7 +147,7 @@ class LSM303(object):
       self._isReady  = True
 
     print("[{0:>12}] {1:35} ({2}): {3}"
-          .format(CHIP_NAME, "magnetometer/accelerometer", __version__,
+          .format(CHIP_NAME, "Magnetometer/accelerometer", __version__,
                   "ok" if self._isReady else "NOT FOUND"))
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -261,18 +261,6 @@ class LSM303(object):
   @property
   def name(self):
     return CHIP_NAME
-
-  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  def collectCalibrationData(self, trials):
-    f = open('data.txt', 'w')
-    for i in range(trials):
-      xm, ym, zm = self.magnetometer_nT
-      s = "{0} {1} {2}\r\n".format(xm, ym, zm)
-      print(s)
-      f.write(s.encode("ascii"))
-      time.sleep(0.05)
-    f.close()
-    print("Done.")
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def _write_u8(self, i2cAddr, regAddr, val):

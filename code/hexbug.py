@@ -15,7 +15,7 @@
 # provided by the compass (time-filtered) are checked.
 #
 # The MIT License (MIT)
-# Copyright (c) 2019 Thomas Euler
+# Copyright (c) 2018-19 Thomas Euler
 # 2018-09-13, first release.
 # 2018-10-29, use pitch/roll to check if robot is tilted.
 # 2018-11-03, some cleaning up and commenting of the code
@@ -29,6 +29,7 @@
 # 2019-05-06, now uses `getHeading3D` instead of `getPitchRoll` to determine
 #             if the robot is tilted; the additional compass information
 #             (heading) is saved for later use.
+#
 # ----------------------------------------------------------------------------
 import array
 import random

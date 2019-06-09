@@ -6,21 +6,31 @@
 # https://learn.adafruit.com/pages/1341/elements/2996806/download
 #
 # The MIT License (MIT)
-# Copyright (c) 2018 Thomas Euler
+# Copyright (c) 2018-19 Thomas Euler
 # 2018-09-26, v1
 # 2018-10-26, Non-calibrated, non-tilt corrected compass readout added;
 #             the calibrated readout is still unfinished
 # 2019-05-06, `getPitchRoll` now returns 4-element tuple, with a -1 at
 #             position 1 to be compatible with the data format returned
 #             by `getHeading3D`
+# 2019-05-25, `streamCalibrationData` prints raw readings to serial property
+#             using a format that works with the MotionCal software
+#             (see https://www.pjrc.com/store/prop_shield.html)
+#             Also, the Compass class attempts to load calibration data
+#             from modules like `calib_data_xxx.py` for the supported
+#             non-calibrated magnetometer/accelerometer sensors.
+#             NOTE: This is under construction, the compass tilt correction
+#                   and the calibration does not work yet for the LSM303 nor
+#                   the LSM9DS0.
 # ----------------------------------------------------------------------------
+import time
 import array
 import robotling_board as rb
 from math import pi, sin, cos, asin, acos, atan2, sqrt
 from sensors.sensor_base import SensorBase
 from misc.helpers import timed_function
 
-__version__ = "0.1.1.0"
+__version__ = "0.1.1.1"
 
 # ----------------------------------------------------------------------------
 class Compass(SensorBase):
@@ -32,13 +42,39 @@ class Compass(SensorBase):
       # Initialize
       self._acc     = array.array('i', [0,0,0])
       self._mag     = array.array('i', [0,0,0])
+      self._mag_off = array.array('f', [0,0,0])
+      self._mag_mm  = array.array('f', [1,0,0, 0,1,0, 0,0,1])
+      self._mag_fst = 50.0
       self._heading = 0.0
       self._pitch   = 0.0
       self._roll    = 0.0
       self._type    = "Compass"
+      self._isCalib = False
 
+      # Retrieve calibration data, if available
+      if self._driver.name is "lsm303":
+        try:
+          import sensors.calib_data_lsm303 as calib
+          self._mag_off[0] = calib.XM_OFF
+          self._mag_off[1] = calib.YM_OFF
+          self._mag_off[2] = calib.ZM_OFF
+          self._mag_mm[0]  = calib.MM_00
+          self._mag_mm[1]  = calib.MM_01
+          self._mag_mm[2]  = calib.MM_02
+          self._mag_mm[3]  = calib.MM_10
+          self._mag_mm[4]  = calib.MM_11
+          self._mag_mm[5]  = calib.MM_12
+          self._mag_mm[6]  = calib.MM_20
+          self._mag_mm[7]  = calib.MM_21
+          self._mag_mm[8]  = calib.MM_22
+          self._mag_fst    = calib.MFSTR
+          self._isCalib    = True
+        except ImportError:
+          pass
+
+    s = ", calibrated" if self._isCalib else ""
     print("[{0:>12}] {1:35} ({2}): {3}"
-          .format(driver.name, self._type, __version__,
+          .format(driver.name, self._type +s, __version__,
                   "ok" if driver._isReady else "FAILED"))
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -51,31 +87,42 @@ class Compass(SensorBase):
     """
     if self._driver == None:
       return rb.RBL_ERR_DEVICE_NOT_READY
-    Mag  = self._mag
-    Mag  = self._driver.magnetometer_nT
+    Mag = self._mag
+    Mag = self._driver.magnetometer_nT
+    MOf = self._mag_off
+    Mmm = self._mag_mm
+
+    # Apply calibration data
+    xmo = Mag[0] -MOf[0]
+    ymo = Mag[1] -MOf[1]
+    zmo = Mag[2] -MOf[2]
+    xmc = Mmm[0]*xmo +Mmm[1]*ymo +Mmm[2]*zmo
+    ymc = Mmm[3]*xmo +Mmm[4]*ymo +Mmm[5]*zmo
+    zmc = Mmm[6]*ymo +Mmm[7]*ymo +Mmm[8]*zmo
 
     # Normalize magnetometer readings
-    norm = sqrt(Mag[0]**2 +Mag[1]**2 +Mag[2]**2)
-    xm_n =  Mag[0] /norm
-    ym_n = -Mag[1] /norm
+    norm = sqrt(xmc**2 +ymc**2 +zmc**2)
+    xmn = xmc /norm
+    ymn = ymc /norm
+    zmn = zmc /norm
+    ymn = -ymc
+    zmn = -zmc
 
     if tilt:
       # Tilt compensate magnetic sensor measurements
-      _, pit, rol = self.getPitchRoll(radians=True)
-      zm_n = -Mag[2] /norm
-      xm_c = xm_n *cos(pit) +zm_n *sin(pit)
-      ym_c = ym_n *cos(rol) -zm_n *sin(rol)
-      '''
-      xm_c = xm_n *cos(pit) +zm_n *sin(pit)
-      ym_c = xm_n *sin(rol)*sin(pit) +ym_n *cos(rol) -zm_n *sin(rol)*cos(pit)
-      '''
+      # NOTE: Not yet working correctly
+      _, _, pit, rol = self.getPitchRoll(radians=True)
+      xmc = xmn *cos(pit) +ymn *sin(pit) *sin(rol) +zmn *sin(pit) *cos(rol)
+      ymc = zmn *sin(rol) -ymn* cos(rol)
+
     else:
-      xm_c = ym_n
-      ym_c = xm_n
+      xmc = xmn
+      ymc = ymn
 
     # Calculate heading
-    self._heading  = (atan2(-ym_c, xm_c) *180) /pi
+    self._heading = (atan2(ymc, xmc) *180) /pi #old
     self._heading += 360 if self._heading < 0 else 0
+    print(self._heading)
     return self._heading
 
 
@@ -87,6 +134,7 @@ class Compass(SensorBase):
     if self.getHeading(tilt=True, calib=calib) == rb.RBL_ERR_DEVICE_NOT_READY:
       return (rb.RBL_ERR_DEVICE_NOT_READY, 0, 0, 0)
     else:
+      #print(self._heading)
       return (rb.RBL_OK, self._heading, self._pitch, self._roll)
 
 
@@ -116,5 +164,27 @@ class Compass(SensorBase):
       return (rb.RBL_OK, -1, p, r)
     else:
       return (rb.RBL_OK, -1, self._pitch, self._roll)
+
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  def streamCalibrationData(self, n=1000):
+    # Initialize
+    xg = 0
+    yg = 0
+    zg = 0
+    sf = "Raw:{0},{1},{2},{3},{4},{5},{6},{7},{8}"
+    print("Collecting {0} data points data from `{1}` ..."
+          .format(n, self._driver.name))
+
+    # Collect data
+    for i in range(n):
+      xa, ya, za = self._driver.raw_accelerometer
+      xm, ym, zm = self._driver.raw_magnetometer
+      if self._driver.name is "lsm9ds0":
+        xg, yg, zg = self._driver.raw_gyroscope
+      s = sf.format(xa, ya, za, xg, yg, zg, xm, ym, zm)
+      print(s)
+      time.sleep(0.05)
+
+    print("... done.")
 
 # ----------------------------------------------------------------------------

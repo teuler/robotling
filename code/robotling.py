@@ -4,7 +4,7 @@
 # robotling board.
 #
 # The MIT License (MIT)
-# Copyright (c) 2018 Thomas Euler
+# Copyright (c) 2018-19 Thomas Euler
 # 2018-09-13, v1
 # 2018-11-10, v1.1, Compatible to Boris Lovosevic's MicroPython ESP32 port
 # 2018-12-22, v1.2, Class `Robotling` now more restricted to the board-
@@ -19,6 +19,7 @@
 # 2019-01-01, v1.4  vl6180x time-of-flight distance sensor support added
 # 2019-01-20, v1.5  DotStar feather support added
 # 2018-03-25, v1.6  deepsleep/lightsleep support for ESP32
+# 2019-05-23        LSM9DS0 accelerometer/magnetometer/gyroscope support added
 #
 # Open issues:
 # - NeoPixels don't yet quite as expected with the LoBo ESP32 MicroPython
@@ -90,6 +91,9 @@ class Robotling():
   ----------------
   - _MCP3208       : 8-channel 12-bit A/C converter driver
   - _LSM303        : magnetometer/accelerometer driver (if available)
+  - _LSM9DS0       : accelerometer/magnetometer/gyroscope driver (if available)
+  - _VL6180X       : time-of-flight distance sensor driver (if available)
+  - _DS            : DotStar array feather (if available)
   - _motorDriver   : 2-channel DC motor driver
   - _spinTracker   : Tracks performance of `spin_ms()` function
 
@@ -140,7 +144,6 @@ class Robotling():
     self._VL6180X = None
     self._DS = None
 
-
     # Initialize further devices depending on the selected onboard components
     # (e.g. which type of magnetometer/accelerometer/gyro, etc.)
     if "lsm303" in devices:
@@ -150,6 +153,14 @@ class Robotling():
       from sensors.compass import Compass
       self._LSM303 = lsm303.LSM303(self._I2C)
       self.Compass = Compass(self._LSM303)
+
+    if "lsm9ds0" in devices:
+      # Magnetometer/accelerometer/gyroscope break-out, import drivers and
+      # initialize lsm9ds0 and respective compass instance
+      import driver.lsm9ds0 as lsm9ds0
+      from sensors.compass import Compass
+      self._LSM9DS0 = lsm9ds0.LSM9DS0(self._I2C)
+      self.Compass = Compass(self._LSM9DS0)
 
     if "compass_cmps12" in devices:
       # Very nice compass module with tilt-compensation built in

@@ -44,7 +44,10 @@ class I2CBus(object):
   def __init__(self, _freq, scl, sda):
     self._i2cDevList = []
     self._i2c = I2C(scl=Pin(scl), sda=Pin(sda), freq=_freq)
+    print("Scanning I2C bus ...")
     self._i2cDevList = self._i2c.scan()
+    print("... {0} device(s) found ({1})"
+          .format(len(self._i2cDevList), self._i2cDevList))
 
   def deinit(self):
     self._i2c = None
