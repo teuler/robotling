@@ -48,10 +48,11 @@ USE_POWER_SHD    = const(0)    # Use ENAB_5V (voltage regulator off)   (> v1.1)
 
 # Options, "behaviours"
 DO_LOOK_AROUND   = const(30)   # Use "looking around", as probabilty, [‰]
-DO_TAKE_NAPS     = const(10)   # Use "nap", as probability, [‰]
+DO_TAKE_NAPS     = const(0)    # Use "nap", as probability, [‰], e.g. 10
 
 # Additional devices plugged into the robotling board
-MORE_DEVICES     = ["compass_cmps12"]
+#MORE_DEVICES    = ["compass_cmps12"]
 #MORE_DEVICES    = ["compass_cmps12", "vl6180x"]
-#MORE_DEVICES    = ["lsm303"]
+MORE_DEVICES     = ["lsm303"]
 #MORE_DEVICES    = ["lsm303", "dotstar_feather"]
+#MORE_DEVICES    = ["lsm9ds0"]

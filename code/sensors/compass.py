@@ -122,7 +122,6 @@ class Compass(SensorBase):
     # Calculate heading
     self._heading = (atan2(ymc, xmc) *180) /pi #old
     self._heading += 360 if self._heading < 0 else 0
-    print(self._heading)
     return self._heading
 
 
