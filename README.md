@@ -4,7 +4,7 @@
 
 "robotling" is a simple circuit board to control small robots.
 
-Please check out the videos ([1](https://youtu.be/wil41YtIeN8), [2](https://youtu.be/cLstXW3RsBA)) and find the details in the [wiki](https://github.com/teuler/robotling/wiki). 
+Please check out the videos ([video 1](https://youtu.be/wil41YtIeN8), [video 2](https://youtu.be/cLstXW3RsBA)) and find the details in the [wiki](https://github.com/teuler/robotling/wiki). 
 
 ### Release Notes
 
