@@ -7,7 +7,7 @@
 ### Release Notes
 
 * 2019-07-13
-  - New wiki page ['Sensors etc.'](https://github.com/teuler/robotling/wiki/Sensoren-etc) describing the supported sensors added
+  - New wiki page ['Sensors etc.'](https://github.com/teuler/robotling/wiki/Sensoren-etc) with supported sensors added
   - Wiki page ['Demo'](https://github.com/teuler/robotling/wiki/Demo) updated 
 * 2019-05-18 - Release v1.6
   - Added new "behaviour" (take a nap) based on deepsleep/lightsleep support for ESP32
