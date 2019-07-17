@@ -13,6 +13,8 @@
 #             robotling board updated; does not require a Timer anymore.
 #             For details, see `robotling.py`.
 # 2019-04-07, added new "behaviour" (take a nap)
+# 2019-07-13, added new "behaviour" (find light)
+#             `hexbug_config.py` reorganised and cleaned up
 # ----------------------------------------------------------------------------
 from hexbug import *
 
@@ -93,6 +95,11 @@ def main():
             r.MotorTurn.speed = SPEED_TURN *dir
             r.spin_ms(SPEED_TURN_DELAY*2)
             r.MotorTurn.speed = 0
+
+          # If compass is used and a heading was chosen (because of cliff or
+          # obstacle), save this as new target heading
+          if r.onTrouble != 0 and DO_WALK_STRAIGHT:
+            r._targetHead = r.Compass.getHeading()
 
         finally:
           # Make sure the robotling board get updated at least once per loop

@@ -16,10 +16,11 @@
 #                   flow and, hence, inconsistencies) and b) makes the code
 #                   compatible to CircuitPython, which does not (yet?) support
 #                   timers.
-# 2019-01-01, v1.4  vl6180x time-of-flight distance sensor support added
-# 2019-01-20, v1.5  DotStar feather support added
-# 2018-03-25, v1.6  deepsleep/lightsleep support for ESP32
+# 2019-01-01, v1.4, vl6180x time-of-flight distance sensor support added
+# 2019-01-20, v1.5, DotStar feather support added
+# 2018-03-25, v1.6, deepsleep/lightsleep support for ESP32
 # 2019-05-23        LSM9DS0 accelerometer/magnetometer/gyroscope support added
+# 2019-07-13, v1.7, `hexbug_config.py` reorganised and cleaned up
 #
 # Open issues:
 # - NeoPixels don't yet quite as expected with the LoBo ESP32 MicroPython
@@ -54,7 +55,7 @@ else:
   from platform.m4ex.neopixel import NeoPixel
   import platform.m4ex.time as time
 
-__version__ = "0.1.6.0"
+__version__ = "0.1.7.0"
 
 # ----------------------------------------------------------------------------
 class Robotling():

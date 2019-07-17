@@ -15,7 +15,7 @@
 # provided by the compass (time-filtered) are checked.
 #
 # The MIT License (MIT)
-# Copyright (c) 2018-19 Thomas Euler
+# Copyright (c) 2018-2019 Thomas Euler
 # 2018-09-13, first release.
 # 2018-10-29, use pitch/roll to check if robot is tilted.
 # 2018-11-03, some cleaning up and commenting of the code
@@ -29,6 +29,8 @@
 # 2019-05-06, now uses `getHeading3D` instead of `getPitchRoll` to determine
 #             if the robot is tilted; the additional compass information
 #             (heading) is saved for later use.
+# 2019-07-13, added new "behaviour" (find light)
+#             `hexbug_config.py` reorganised and cleaned up
 #
 # ----------------------------------------------------------------------------
 import array
@@ -50,15 +52,6 @@ else:
   import platform.m4ex.time as time
 
 # ----------------------------------------------------------------------------
-# Robot states
-STATE_IDLE       = const(0)
-STATE_WALKING    = const(1)
-STATE_LOOKING    = const(2)
-STATE_ON_HOLD    = const(3)
-STATE_OBSTACLE   = const(4)
-STATE_CLIFF      = const(5)
-STATE_WAKING_UP  = const(6)
-
 # NeoPixel colors (r,g,b) for the different states
 STATE_COLORS     = bytearray((
                    10,10,10,   # STATE_IDLE
@@ -114,8 +107,29 @@ class HexBug(Robotling):
       self._loadData      = array.array("i", [0]*2)
       self._MCP3208.channelMask |= 0xC0
 
+    # If to use compass, initialize target heading
+    if DO_WALK_STRAIGHT and not DO_FIND_LIGHT:
+      self.cpsTargetHead = self.Compass.getHeading()
+
+    # If "find light" behaviour is activated, activate the AI channels to which
+    # the photodiodes are connected and create a filter to smooth difference
+    # in light intensity readings (`lightDiff`)
+    self.lightDiff = 0
+    if DO_FIND_LIGHT:
+      self._MCP3208.channelMask |= 1 << AI_CH_LIGHT_R | 1 << AI_CH_LIGHT_L
+      self.LightDiffFilter = TemporalFilter(5, "i")
+
     # Flag that indicates when the robot should stop moving
     self.onHold = False
+
+    """
+    if SEND_TELEMETRY and platform.ID == platform.ENV_ESP32_UPY:
+      from remote.telemetry import Telemetry
+      self._d = dict()
+      self.onboardLED.on()
+      self._t = Telemetry(self.ID)
+      self.onboardLED.off()
+    """
 
     # Create filters for smoothing the pitch and roll readings
     self.PitchFilter = TemporalFilter(8)
@@ -154,6 +168,25 @@ class HexBug(Robotling):
       self._loadData[0] = int(self.walkLoadFilter.mean(self._MCP3208.data[6]))
       self._loadData[1] = int(self.turnLoadFilter.mean(self._MCP3208.data[7]))
 
+    if DO_FIND_LIGHT:
+      dL = aid[AI_CH_LIGHT_R] -aid[AI_CH_LIGHT_L]
+      self.lightDiff = int(self.LightDiffFilter.mean(dL))
+
+    """
+    if SEND_TELEMETRY and self._t._isReady:
+      # Collect the data ...
+      self._d["state"] = self.state
+      self._d["battery_V"] = self.Battery_V
+      self._d["distIR_cm"] = list(self._distData)
+      self._d["cmps_EHPR"] = ehpr
+      self._d["lightDiff"] = self.lightDiff
+      if USE_LOAD_SENSING:
+        self._d["motorLoad"] = list(self._loadData)
+
+      # ... and publish
+      self._t.publishDict(self._d)
+    """
+
     # Change NeoPixel according to state
     i = self.state *3
     self.startPulseNeoPixel(STATE_COLORS[i:i+3])
@@ -171,6 +204,16 @@ class HexBug(Robotling):
         run time (in [s]). Returns -1=obstacle, 1=cliff, and 0=none.
     """
     b = 0
+    if DO_FIND_LIGHT:
+      b = -self.lightDiff
+
+    elif DO_WALK_STRAIGHT:
+      # Using the compass, determine current offset from target heading and
+      # set a new bias (in [ms]) by which the head position is corrected. This
+      # is done by biasing the head direction after scanning for obstacles
+      dh = self.currHead -self.cpsTargetHead
+      tb = dh *HEAD_ADJUST_FACT if abs(dh) > HEAD_ADJUST_THR else 0
+
     o = False
     c = False
     l = len(self._scanPos) -1
@@ -221,6 +264,10 @@ class HexBug(Robotling):
       self.ServoRangingSensor.angle = SCAN_DIST_SERVO
       self.state = prevState
 
+      # If compass is used, set new target heading
+      if DO_WALK_STRAIGHT and not DO_FIND_LIGHT:
+        self._targetHead = self.Compass.getHeading()
+
   def nap(self):
     """ Take a nap
     """
@@ -248,7 +295,7 @@ class HexBug(Robotling):
     self.dimNeoPixel(0.0)
 
     # ... and enter sleep mode for a random number of seconds
-    self.sleepLightly(random.randint(5, 50))
+    self.sleepLightly(random.randint(NAP_FROM_S, NAP_TO_S))
 
     # Wake up, resume previous state and move sensor arm into scan position
     self.state = prevState
