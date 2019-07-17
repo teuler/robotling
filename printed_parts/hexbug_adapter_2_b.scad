@@ -1,7 +1,7 @@
 // Visibility flags
-showBoard        = 1;
-showBattery      = 1;
-showServo        = 1;
+showBoard        = 0;
+showBattery      = 0;
+showServo        = 0;
 
 // Board
 board_xyz        = [66.0, 58.0, 1.2];
@@ -418,7 +418,100 @@ module sensor_arm()
     }
 }
     
+// ----------------------------------------------------------------------------------
+module sensor_arm2() 
+{
+    dz   = 1;
+    dx   = 37;
+    dy   = 8;
+    r    = 4.0;
+    rh   = 1.5;
+    llen = 15;
+    lhei = 8;
+    loff = 0.5;
+    lwid = 3 +loff*2; //3
+    lgro = 3.5; //6
+    offs = -4.5;
+    lr   = [-1, 1];
+    #color("lightblue", 0.8)
+    
+    translate([-52 -dz, 0, r+base_dz]) {
+        rotate([180,270,0])
+        difference() {
+            color("red", 0.8)
+            group() {
+                hull() {
+                    translate([0, -dx/2, 0])
+                    cylinder($fn=100, h=dz, r=r);
+                    translate([0, +dx/2, 0])
+                    cylinder($fn=100, h=dz, r=r);
+                }
+                
+                // for photodiode
+                for(i = lr) {
+                    hull() {
+                        translate([0, i*dx/2, 0])
+                        cylinder($fn=100, h=dz, r=r);
+                        translate([dy, i*dx/2, 0])
+                        cylinder($fn=100, h=dz, r=r);
+                    }
+                    translate([dy, i*dx/2, -15])
+                    cylinder($fn=100, h=15, r=4);
+                }
 
+              /*translate([0, offs, 0]) {
+                    translate([-lhei/2, -lwid/2 +loff, 0])
+                    cube([lhei, lwid, llen -lhei/2 +1]);
+                    rotate([90, 90, 0])
+                    translate([-lhei*1.2, -lwid/2, 0])
+                    cube([lhei*1.2, lwid, lhei*1.2]);
+                    
+                    rotate([90, 0, 0])
+                    translate([0, llen -3, -lwid/2 -loff])
+                    cylinder($fn=100, h=lwid, r=lhei/2);
+
+                }*/
+             }
+             group() {
+                translate([0, -dx/2, -2])
+                cylinder($fn=100, h=4, r=rh);
+                translate([0, +dx/2, -2])
+                cylinder($fn=100, h=4, r=rh);
+
+                // for photodiode
+                for(i = lr) {
+                    translate([dy, i*dx/2, -17])
+                    cylinder($fn=100, h=17, r=3);
+                    translate([dy, i*dx/2-1.5, -2])
+                    cylinder($fn=100, h=4, r=rh/2);
+                    translate([dy, i*dx/2+1.5, -2])
+                    cylinder($fn=100, h=4, r=rh/2);
+
+                    translate([dy-7, i*dx/2 -4 +i*5, -19])
+                    cube([8,8,15]);
+                    
+                }
+
+                translate([0, offs, 0]) {
+                    translate([-lgro/2 , -lwid/2 +1.5, dz])
+                    cube([lgro, lwid, llen]);
+                
+                    rotate([90, 0, 0])
+                    translate([0, llen -3, -4])
+                    cylinder($fn=100, h=8, r=1.2);
+                
+                    rotate([90, 0, 0])
+                    translate([0, llen -3, -4])
+                    cylinder($fn=100, h=4.5, r=3);
+
+                    rotate([0, 90, 0])
+                    translate([-10, -10, -4])  
+                    cylinder($fn=100, h=8, r=8.5);
+                }
+            }
+        }
+    }
+}
 // ----------------------------------------------------------------------------------
 module ring() 
 {
@@ -540,8 +633,10 @@ group() {
     servo(showServo);
     head();
     sensor_arm();
+    sensor_arm2();
 }
 
+*sensor_arm2();
 *sensor_arm();
 
 translate([0, 0,-30]) 
