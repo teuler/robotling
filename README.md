@@ -9,6 +9,7 @@
 * 2019-07-16 - Release v1.7
   - New wiki pages ['Sensors etc.'](https://github.com/teuler/robotling/wiki/Sensoren-etc) with supported sensors and ['Verhalten'](https://github.com/teuler/robotling/wiki/Verhalten) with behaviours added
   - Wiki pages ['Demo'](https://github.com/teuler/robotling/wiki/Demo) and ['Erweiterungen und Modifikationen'](https://github.com/teuler/robotling/wiki/Erweiterungen-und-Modifikationen) updated 
+  - Code Release [v1.7](https://github.com/teuler/robotling/releases)
 * 2019-05-18 - Release v1.6
   - Added new "behaviour" (take a nap) based on deepsleep/lightsleep support for ESP32
   - Cleaned up the code
@@ -41,4 +42,3 @@
 ### Unresolved Issues
 
   - Tilt correction and calibration for LSM303 and LSM9DS0 compass function is not yet implemented.
-
