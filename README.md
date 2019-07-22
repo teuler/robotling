@@ -6,6 +6,8 @@
 
 ### Release Notes
 
+* 2019-07-22
+  - Robotling code moved from `../code` to `../code/robotling`
 * 2019-07-16 - Release v1.7
   - New wiki pages ['Sensors etc.'](https://github.com/teuler/robotling/wiki/Sensoren-etc) with supported sensors and ['Verhalten'](https://github.com/teuler/robotling/wiki/Verhalten) with behaviours added
   - Wiki pages ['Demo'](https://github.com/teuler/robotling/wiki/Demo) and ['Erweiterungen und Modifikationen'](https://github.com/teuler/robotling/wiki/Erweiterungen-und-Modifikationen) updated 
