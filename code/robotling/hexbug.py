@@ -31,6 +31,12 @@
 #             (heading) is saved for later use.
 # 2019-07-13, added new "behaviour" (find light)
 #             `hexbug_config.py` reorganised and cleaned up
+# 2019-07-24, added the ability to send telemetry via MQTT (ESP32 only);
+#             added a bias factor (`IR_SCAN_BIAS_F`) to the configuration
+#             file which allows accounting for a direction bias in the turning
+#             motor and let the robot walk "more straight";
+#             changed the scan scheme slightly to "left-center-right-center"
+#             instead of "left-right-center"
 #
 # ----------------------------------------------------------------------------
 import array
@@ -48,6 +54,8 @@ from hexbug_config import *
 from platform.platform import platform
 if platform.ID == platform.ENV_ESP32_UPY:
   import time
+  if SEND_TELEMETRY:
+    mqttd = dict()
 else:
   import platform.m4ex.time as time
 
@@ -86,8 +94,28 @@ class HexBug(Robotling):
     # the time the motor is running (in [s]) is used to define angular
     # position
     self._scanPos  = IR_SCAN_POS
-    self._distData = array.array("i", [0] *len(IR_SCAN_POS))
+    self._iScanPos = [0] *len(IR_SCAN_POS)
     self.onTrouble = False
+
+    # Apply bias to scan position (times) to account for a directon bias
+    # in the turning motor
+    for iPos, pos in enumerate(IR_SCAN_POS):
+      f = (1. +IR_SCAN_BIAS_F) if pos > 0 else (1. -IR_SCAN_BIAS_F)
+      self._scanPos[iPos] *= f
+
+    # Determine the number of different scan positions to dimension
+    # the distance data array
+    l = []
+    for iPos, pos in enumerate(IR_SCAN_POS_DEG):
+      if iPos == 0 or not pos in l:
+        l.append(pos)
+        self._iScanPos[iPos] = iPos
+      else:
+        for j in range(len(l)):
+          if l[j] == pos:
+            self._iScanPos[iPos] = j
+            break
+    self._distData = array.array("i", [0] *len(l))
 
     # Add the servo that moves the ranging sensor up and down
     self.ServoRangingSensor = Servo(DO_CH_DIST_SERVO,
@@ -98,6 +126,7 @@ class HexBug(Robotling):
     self.MotorWalk = DCMotor(self._motorDriver, drv8835.MOTOR_A)
     self.MotorTurn = DCMotor(self._motorDriver, drv8835.MOTOR_B)
     self._turnBias = 0
+    self.turnStats = 0
 
     if BOARD_VER >= 120 and USE_LOAD_SENSING:
       # Create filters to smooth the load readings from the motors and change
@@ -122,14 +151,11 @@ class HexBug(Robotling):
     # Flag that indicates when the robot should stop moving
     self.onHold = False
 
-    """
     if SEND_TELEMETRY and platform.ID == platform.ENV_ESP32_UPY:
       from remote.telemetry import Telemetry
-      self._d = dict()
       self.onboardLED.on()
       self._t = Telemetry(self.ID)
       self.onboardLED.off()
-    """
 
     # Create filters for smoothing the pitch and roll readings
     self.PitchFilter = TemporalFilter(8)
@@ -172,20 +198,27 @@ class HexBug(Robotling):
       dL = aid[AI_CH_LIGHT_R] -aid[AI_CH_LIGHT_L]
       self.lightDiff = int(self.LightDiffFilter.mean(dL))
 
-    """
+    #_t = time.ticks_us()
     if SEND_TELEMETRY and self._t._isReady:
       # Collect the data ...
-      self._d["state"] = self.state
-      self._d["battery_V"] = self.Battery_V
-      self._d["distIR_cm"] = list(self._distData)
-      self._d["cmps_EHPR"] = ehpr
-      self._d["lightDiff"] = self.lightDiff
+      #self.onboardLED.on()
+      mqttd[KEY_STATE] = self.state
+      #mqttd[KEY_STATISTICS] = {KEY_TURNS :self.turnStats}
+      mqttd[KEY_POWER] = {KEY_BATTERY: self.Battery_V}
       if USE_LOAD_SENSING:
-        self._d["motorLoad"] = list(self._loadData)
+        mqttd[KEY_POWER].update({KEY_MOTORLOAD: list(self._loadData)})
+      mqttd[KEY_SENSOR] = {KEY_DISTANCE: list(self._distData)}
+      _temp = {KEY_HEADING: ehpr[1], KEY_PITCH: ehpr[2], KEY_ROLL: ehpr[3]}
+      mqttd[KEY_SENSOR].update({KEY_COMPASS: _temp})
+      if DO_FIND_LIGHT:
+        _temp = {KEY_INTENSITY: [aid[AI_CH_LIGHT_L], aid[AI_CH_LIGHT_R]]}
+        mqttd[KEY_SENSOR].update({KEY_PHOTODIODE: _temp})
 
       # ... and publish
-      self._t.publishDict(self._d)
-    """
+      self._t.publishDict(mqttd)
+      #self.onboardLED.off()
+    #_delta = time.ticks_diff(time.ticks_us(), _t)
+    #print('Time = {:6.3f}ms'.format(_delta/1000))
 
     # Change NeoPixel according to state
     i = self.state *3
@@ -223,7 +256,7 @@ class HexBug(Robotling):
       self.spin_ms(abs(Pos) +bias)
       self.MotorTurn.speed = 0
       d = int(self.RangingSensor.range_cm)
-      self._distData[iPos] = d
+      self._distData[self._iScanPos[iPos]] = d
       o = o or (d < DIST_OBST_CM)
       c = c or (d > DIST_CLIFF_CM)
     self._turnBias = b

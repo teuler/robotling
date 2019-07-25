@@ -15,6 +15,7 @@
 # 2019-04-07, added new "behaviour" (take a nap)
 # 2019-07-13, added new "behaviour" (find light)
 #             `hexbug_config.py` reorganised and cleaned up
+# 2019-07-24, added "memory" to turn direction (experimental)
 # ----------------------------------------------------------------------------
 from hexbug import *
 
@@ -31,7 +32,7 @@ def main():
   print("Entering loop ...")
   try:
     try:
-      lastDir = 0
+      lastTurnDir = 0
 
       while True:
         try:
@@ -40,7 +41,7 @@ def main():
           if r.onHold:
             # Some problem was detected (e.g. robot tilted etc.), skip all
             # the following code
-            lastDir = 0
+            lastTurnDir = 0
             continue
 
           # Sometines just look around
@@ -62,17 +63,27 @@ def main():
             r.state = STATE_WALKING
             r.MotorWalk.speed = SPEED_WALK
 
+            if not lastTurnDir == 0:
+              # If just turned and no obstacle, "remember" that this turn
+              # directon was successful
+              r.turnStats += MEM_INC if lastTurnDir > 0 else -MEM_INC
+              lastTurnDir = 0
+            elif not r.turnStats == 0:
+              # If not just turned, slowly "forget" the successful turn
+              # direction
+              r.turnStats += MEM_DEC if r.turnStats < 0 else -MEM_DEC
+
           elif r.onTrouble < 0:
             # Obstacle detected -> Stop, turn in a random direction to check
             # (in the next spin) again for obstacles
             r.state = STATE_OBSTACLE
             r.MotorWalk.speed = 0
             r.spin_ms(200)
-            if lastDir == 0:
+            if r.turnStats == 0:
               dir = [-1,1][random.randint(0,1)]
-              lastDir = dir
             else:
-              dir = lastDir
+              dir = 1 if r.turnStats > 0 else -1
+            lastTurnDir = dir
             r.MotorTurn.speed = SPEED_TURN *dir
             r.spin_ms(SPEED_TURN_DELAY)
             r.MotorTurn.speed = 0
@@ -86,12 +97,11 @@ def main():
             r.MotorWalk.speed = -SPEED_WALK
             r.spin_ms(SPEED_BACK_DELAY)
             r.MotorWalk.speed = 0
-            if lastDir == 0:
+            if r.turnStats == 0:
               dir = [-1,1][random.randint(0,1)]
-              lastDir = dir
             else:
-              dir = lastDir
-            dir = [-1,1][random.randint(0,1)]
+              dir = 1 if r.turnStats > 0 else -1
+            lastTurnDir = dir
             r.MotorTurn.speed = SPEED_TURN *dir
             r.spin_ms(SPEED_TURN_DELAY*2)
             r.MotorTurn.speed = 0

@@ -45,8 +45,6 @@ def do_connect():
 # REPL via WLAN
 """
 do_connect()
-"""
-"""
 import webrepl
 webrepl.start()
 """

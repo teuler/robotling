@@ -20,14 +20,21 @@ except ModuleNotFoundError:
 # Tilt-sensing
 PIRO_MAX_ANGLE   = const(25)   # Maximal tilt (i.e. pitch/roll) allowed
                                # .. before robot responds
+
 # Obstacle/cliff detection
-# (Scan positions for obstacles/cliffs checks as head turn durations list [ms])
-IR_SCAN_POS      = [-450, 500, -250]
-IR_SCAN_POS_DEG  = [-35, 0, 35]
-IR_SCAN_CONE_DEG = const(30)
+#
+# Scan positions as list of head turn durations in [ms] and as a list
+# of approx. angular positions ([°]).
+IR_SCAN_POS      = [-300, 300, 300, -300]
+IR_SCAN_POS_DEG  = [-35, 0, 35, 0]
+IR_SCAN_BIAS_F   = -0.1        # To account for bias in turning motor:
+                               # .. pos > 0 --> pos*(1+IR_SCAN_BIAS_F)
+                               # .. pos < 0 --> pos*(1-IR_SCAN_BIAS_F)
+IR_SCAN_CONE_DEG = const(30)   # Angular width of scan cone (only for GUI)
+
 AI_CH_IR_RANGING = const(0)    # Analog-In channel for IR distance sensor
 DIST_OBST_CM     = const(7)    # Lower distances are considered obstacles
-DIST_CLIFF_CM    = const(16)   # Farer distances are considered cliffs
+DIST_CLIFF_CM    = const(13)   # Farer distances are considered cliffs
 
 # Servo settings
 DO_CH_DIST_SERVO = DIO0        # Digital-Out channel for distance sensor servo
@@ -65,7 +72,7 @@ DO_LOOK_AROUND   = const(30)   # =probabilty ([‰]) to activate behaviour
 # the processor and all on-board electronics go to deep sleep or are turned
 # off. The roboter wakes up after a random number of seconds.
 # (only with ESP32, needs `USE_POWER_SHD` enabled)
-DO_TAKE_NAPS     = const(30)   # =probability ([‰]) to activate behaviour
+DO_TAKE_NAPS     = const(0)    # =probability ([‰]) to activate behaviour
 NAP_FROM_S       = const(5)    # range of random numbers to sleep ...
 NAP_TO_S         = const(20)   # ... in [s]
 
@@ -111,12 +118,20 @@ STATE_WAKING_UP  = const(6)
 # MQTT releated definitions
 #
 # Message keys
-KEY_CMPS_EHPR    = "cmps_EHPR"  # [error code, heading, pitch, roll]
-KEY_LIGHTDIFF    = "lightDiff"
-KEY_DISTIR_CM    = "distIR_cm"
-KEY_BATTERY_V    = "battery_V"
+KEY_SENSOR       = "sensor"
+KEY_COMPASS      = "compass"
+KEY_HEADING      = "heading_deg"
+KEY_PITCH        = "pitch_deg"
+KEY_ROLL         = "roll_deg"
+KEY_PHOTODIODE   = "photodiode"
+KEY_INTENSITY    = "intensity"
+KEY_DISTANCE     = "distance_cm"
+KEY_POWER        = "power"
+KEY_BATTERY      = "battery_V"
 KEY_STATE        = "state"
-KEY_MOTORLOAD    = "motorLoad"
+KEY_MOTORLOAD    = "motor_load"
+KEY_STATISTICS   = "stats"
+KEY_TURNS        = "turns"
 
 # Limits for telemetry data
 LIPO_MAX_V       = 4.2
@@ -125,7 +140,11 @@ V_MAX            = 5.0
 LOAD_MAX         = 1500
 LOAD_ARR_LEN     = 200
 LOAD_ARR_BOX     = 1
-LIGHTDIF_ARR_BOX = 1
+LIGHT_ARR_BOX    = 1
+
+# Experimental parameters
+MEM_INC          = 1
+MEM_DEC          = 0.25
 
 # <==
 # ---------------------------------------------------------------------

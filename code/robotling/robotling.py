@@ -116,13 +116,13 @@ class Robotling():
           .format(BOARD_VER/100, __version__, platform.sysInfo[2],
                   platform.sysInfo[0]))
 
-    print("Initializing ...")
-
     # Initialize some variables
     self._devices = devices
     self._ID = platform.GUID
+    print("GUID = '{0}'".format(self.ID))
 
     # Initialize on-board (feather) hardware
+    print("Initializing ...")
     self.onboardLED = dio.DigitalOut(rb.RED_LED, value=False)
     self._adc_battery = aio.AnalogIn(rb.ADC_BAT)
 
