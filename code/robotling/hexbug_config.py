@@ -98,6 +98,7 @@ HEAD_ADJUST_THR  = const(5)    # [°]
 # - Compass modules     : "compass_cmps12", "lsm303", "lsm9ds0"
 # - ToF distance sensor : "vl6180x"
 # - Display             : "dotstar_feather"
+# - WLAN                : "wlan"
 MORE_DEVICES     = ["compass_cmps12"]
 
 # <==

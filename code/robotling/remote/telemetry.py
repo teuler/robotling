@@ -3,36 +3,39 @@
 # Telemetry via the MQTT protocol (test).
 #
 # The MIT License (MIT)
-# Copyright (c) 2019 Thomas Euler
+# Copyright (c) 2018-19 Thomas Euler
 # 2018-11-11, v1
+# 2019-07-25, Added `connect` as method;
+#             switched from `umqtt.simple` to `umqtt.robust` because it
+#             automatically reconnects when the network is unstable
+#             (i.e. after sleep)
 # ----------------------------------------------------------------------------
 import network
 import ujson
 import errno
-from umqtt.simple import MQTTClient
+from umqtt.robust import MQTTClient
 from misc.helpers import timed_function
 
-__version__ = "0.1.0.0"
+__version__ = "0.1.1.0"
 
 # ----------------------------------------------------------------------------
 class Telemetry():
   """Telemetry via the MQTT protocoll."""
 
   def __init__(self, ID, broker=""):
-    """ Requires the robotling instance
-    """
-    print("Initializing telemetry via MQTT ...")
     self._isReady   = False
     self._broker    = broker
     self._clientID  = ID
     self._client    = None
     self._rootTopic = self._clientID
 
-    # Check if connected to a network
-    self.sta_if  = network.WLAN(network.STA_IF)
+  def connect(self):
+    """ Try to connect to MQTT broker
+    """
+    print("Initializing telemetry via MQTT ...")
+    self.sta_if = network.WLAN(network.STA_IF)
     if not self.sta_if.isconnected():
       print("Error: Not connected to network")
-
     else:
       from NETWORK import my_mqtt_usr, my_mqtt_pwd, my_mqtt_srv
       if len(self._broker) == 0:
@@ -41,23 +44,19 @@ class Telemetry():
       self._client.set_last_will(self._rootTopic, b'link/down')
       try:
         if self._client.connect() == 0:
-          print("[{0:>7}] {1}".format("topic", self._rootTopic))
+          print("[{0:>12}] {1}".format("topic", self._rootTopic))
           self._client.publish(self._rootTopic, b'link/up')
           self._isReady = True
       except:
         print("Error: MQTT brocker {} not responding".format(self._broker))
-
     print("... done." if self._isReady else "... FAILED")
 
-
-  #@timed_function
   def publishDict(self, d):
     """ Publish a dictionary as a message under the standard topic
     """
     if self._isReady:
       self._client.publish(self._rootTopic, ujson.dumps(d))
 
-  #@timed_function
   def publish(self, t, m):
     """ Publish a message under <standard topic>/<t>
     """

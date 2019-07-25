@@ -21,6 +21,7 @@
 # 2018-03-25, v1.6, deepsleep/lightsleep support for ESP32
 # 2019-05-23        LSM9DS0 accelerometer/magnetometer/gyroscope support added
 # 2019-07-13, v1.7, `hexbug_config.py` reorganised and cleaned up
+# 2019-07-25,       Added `wlan` to the list of possible devices
 #
 # Open issues:
 # - NeoPixels don't yet quite as expected with the LoBo ESP32 MicroPython
@@ -81,6 +82,7 @@ class Robotling():
   - startPulseNeoPixel()
     Set color of NeoPixel at RBL_NEOPIX and enable pulsing
   - sleepLightly(), sleepDeeply()
+  - connectToWLAN()
 
   Properties:
   ----------
@@ -181,6 +183,10 @@ class Robotling():
       self._DS[0] = 0
       self._DS.show()
 
+    if "wlan" in devices:
+      # Connect to WLAN, if not already connected
+      self.connectToWLAN()
+
     # Initialize Neopixel (connector)
     self._NPx = NeoPixel(rb.NEOPIX, 1)
     self._NPx0_RGB = bytearray([0]*3)
@@ -211,7 +217,6 @@ class Robotling():
       self._spin_callback()
     self._spinTracker.update()
 
-
   def spin_ms(self, dur_ms=0, period_ms=-1, callback=None):
     """ If not using a Timer to call `update()` regularly, calling `spin()`
         once per main loop and everywhere else instead of `time.sleep_ms()`
@@ -219,8 +224,6 @@ class Robotling():
         e.g. "spin(period_ms=50, callback=myfunction)"" is setting it up,
              "spin(100)"" (~sleep for 100 ms) or "spin()" keeps it running.
     """
-    #print("spin_ms(", dur_ms, period_ms, ");", self._spin_t_last_ms)
-
     if self._spin_period_ms > 0:
       p_ms = self._spin_period_ms
       p_us = p_ms *1000
@@ -273,6 +276,26 @@ class Robotling():
     else:
       # Spin parameters not setup, therefore just sleep
       time.sleep_ms(dur_ms)
+
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  def connectToWLAN(self):
+    """ Connect to WLAN if not already connected
+    """
+    if platform.ID == platform.ENV_ESP32_UPY:
+      import network
+      from NETWORK import my_ssid, my_wp2_pwd
+      if not network.WLAN(network.STA_IF).isconnected():
+        sta_if = network.WLAN(network.STA_IF)
+        if not sta_if.isconnected():
+          print('Connecting to network...')
+          sta_if.active(True)
+          sta_if.connect(my_ssid, my_wp2_pwd)
+          while not sta_if.isconnected():
+            self.onboardLED.on()
+            time.sleep(0.05)
+            self.onboardLED.off()
+            time.sleep(0.05)
+          print("[{0:>12}] {1}".format("network", sta_if.ifconfig()))
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def printReport(self):

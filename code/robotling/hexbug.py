@@ -155,6 +155,7 @@ class HexBug(Robotling):
       from remote.telemetry import Telemetry
       self.onboardLED.on()
       self._t = Telemetry(self.ID)
+      self._t.connect()
       self.onboardLED.off()
 
     # Create filters for smoothing the pitch and roll readings
