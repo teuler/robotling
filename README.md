@@ -6,6 +6,12 @@
 
 ### Release Notes
 
+* 2019-07-25
+  - Now an option was included to send telemetry via WLAN using the MQTT protocol (ESP32 only).
+  - `hexbug.py` - Bias factor (`IR_SCAN_BIAS_F`) added to the configuration file; it which allows correcting for a direction bias in the turning motor. Also, the scan scheme was slightly changed from "left-right-center" to "left-center-right-center", which helps the robot to walk more straight.
+  - `telemetry.py`- Encapsules the MQTT functionality. 
+  - `main.py´ - Sinple "memory" was added to remember the direction of successful turns (experimental).
+  - `robotling.py` - Now the keyword "wlan" can be added as a device to `MORE_DEVICES` to activate the network (instead of changing `boot.py`)
 * 2019-07-22
   - Robotling code moved from `../code` to `../code/robotling`
 * 2019-07-16 - Release v1.7
