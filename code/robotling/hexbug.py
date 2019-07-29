@@ -204,6 +204,7 @@ class HexBug(Robotling):
       # Collect the data ...
       #self.onboardLED.on()
       mqttd[KEY_STATE] = self.state
+      mqttd[KEY_TIMESTAMP] = time.ticks_ms() /1000.
       #mqttd[KEY_STATISTICS] = {KEY_TURNS :self.turnStats}
       mqttd[KEY_POWER] = {KEY_BATTERY: self.Battery_V}
       if USE_LOAD_SENSING:
