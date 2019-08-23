@@ -3,9 +3,9 @@
 "robotling" is a simple circuit board to control small robots. Check out the videos ([video 1](https://youtu.be/wil41YtIeN8), [video 2](https://youtu.be/cLstXW3RsBA)) and find the details in the German [wiki](https://github.com/teuler/robotling/wiki). 
 
 <p align="center">
-  <img width="320" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_4857a_sm.png"></img>
-  <img width="320" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_5354.jpg"></img>
-  <img width="320" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_5354.jpg"></img>
+  <img width="240" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_4857a_sm.png"></img>
+  <img width="240" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_5354.jpg"></img>
+  <img width="240" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_5354.jpg"></img>
 </p>
 
 ### Release Notes
