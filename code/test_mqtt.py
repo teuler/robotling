@@ -30,7 +30,7 @@ def onConnect(client, userdata, flags, rc):
   if rc == 0:
     print("Successfully connected to `{0}`".format(MQTT_BROKER))
     print("Subscribing to `{0}` ...".format(MQTT_ROOT_TOPIC))
-    client.subscribe(MQTT_ROOT_TOPIC)
+    client.subscribe(MQTT_ROOT_TOPIC +"/raw")
     isConnected = True
   else:
     print("Broker `{0}` replied `{1}`".format(MQTT_BROKER, rc))
