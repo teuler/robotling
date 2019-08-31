@@ -2,7 +2,7 @@
 # hexbug_config.py
 # Configuration file for HexBug robotling
 #
-# *** Blue HexBug ***
+# *** Orange HexBug ***
 # ---------------------------------------------------------------------
 # Allow to use robotling GUI running on a PC to use the same
 # configuration file as the MicroPython code
@@ -27,21 +27,27 @@ PIRO_MAX_ANGLE   = const(25)   # Maximal tilt (i.e. pitch/roll) allowed
 # of approx. angular positions ([°]).
 IR_SCAN_POS      = [-300, 300, 300, -300]
 IR_SCAN_POS_DEG  = [-35, 0, 35, 0]
-IR_SCAN_BIAS_F   = -0.1        # To account for bias in turning motor:
+IR_SCAN_BIAS_F   = -0.0        # To account for bias in turning motor:
                                # .. pos > 0 --> pos*(1+IR_SCAN_BIAS_F)
                                # .. pos < 0 --> pos*(1-IR_SCAN_BIAS_F)
 IR_SCAN_CONE_DEG = const(30)   # Angular width of scan cone (only for GUI)
-
+IR_SCAN_SENSOR   = const(0)    # 0=GP2Y0A41SK0F (4-30 cm)
+                               # 1=GP2Y0AF15X (1.5-15 cm)
 AI_CH_IR_RANGING = const(0)    # Analog-In channel for IR distance sensor
-DIST_OBST_CM     = const(7)    # Lower distances are considered obstacles
-DIST_CLIFF_CM    = const(13)   # Farer distances are considered cliffs
+DIST_OBST_CM     = const(9)    # Lower distances are considered obstacles
+DIST_CLIFF_CM    = const(25)   # Farer distances are considered cliffs
+DIST_SMOOTH      = const(0)
+
+# Light intensity measurements
+AI_CH_LIGHT_R    = const(3)
+AI_CH_LIGHT_L    = const(2)
 
 # Servo settings
 DO_CH_DIST_SERVO = DIO0        # Digital-Out channel for distance sensor servo
 MIN_DIST_SERVO   = const(45)   # Limits of servo that holds the arm with the
 MAX_DIST_SERVO   = const(-45)  # .. IR distance sensor in [°]
-MIN_US_SERVO     = const(1322) # Minimum timing of servo in [us]
-MAX_US_SERVO     = const(2350) # Maximum timing of servo in [us]
+MIN_US_SERVO     = const(1172) # Minimum timing of servo in [us]
+MAX_US_SERVO     = const(2033) # Maximum timing of servo in [us]
 SCAN_DIST_SERVO  = const(-25)  # Angle of IR distance sensor arm
 
 # Period of timer that keeps sensor values updated, the NeoPixel pulsing,
@@ -49,11 +55,11 @@ SCAN_DIST_SERVO  = const(-25)  # Angle of IR distance sensor arm
 TM_PERIOD        = const(50)
 
 # Default motor speeds ..
-SPEED_WALK       = const(-75)  # -55,-70 .. for walking forwards
-SPEED_TURN       = const(35)   # +25,+30 .. for turning head when changing direction
-SPEED_TURN_DELAY = const(900)  #
-SPEED_BACK_DELAY = const(500)  #
-SPEED_SCAN       = const(55)   # 40 .. for turning head when scanning
+SPEED_WALK       = const(-55)  # -70 .. for walking forwards
+SPEED_TURN       = const(35)   # +30 .. for turning head when changing direction
+SPEED_SCAN       = const(40)   # .. for turning head when scanning
+SPEED_TURN_DELAY = const(500)  # Duration for turning in new direction
+SPEED_BACK_DELAY = const(600)  # Duration for backing up (cliff)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Options, depending on board and sensor complement
@@ -72,17 +78,15 @@ DO_LOOK_AROUND   = const(30)   # =probabilty ([‰]) to activate behaviour
 # the processor and all on-board electronics go to deep sleep or are turned
 # off. The roboter wakes up after a random number of seconds.
 # (only with ESP32, needs `USE_POWER_SHD` enabled)
-DO_TAKE_NAPS     = const(0)    # =probability ([‰]) to activate behaviour
+DO_TAKE_NAPS     = const(0)    # =probability, [‰]to activate behaviour
 NAP_FROM_S       = const(5)    # range of random numbers to sleep ...
 NAP_TO_S         = const(20)   # ... in [s]
 
 # Find light source
 # Uses a photodiode pair to home in on a light source. Give pins that connect
-# to the photodiodes in `AI_CH_LIGHT_R` and `AI_CH_LIGHT_L`.
+# to the photodiodes in `AI_CH_LIGHT_R` and `AI_CH_LIGHT_L` (above)
 # (obviously, does not work together `DO_WALK_STRAIGHT`)
 DO_FIND_LIGHT    = const(0)    # 1=enabled
-AI_CH_LIGHT_R    = const(3)
-AI_CH_LIGHT_L    = const(2)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # "Behaviors", not yet fully implemented/tested
@@ -99,14 +103,15 @@ HEAD_ADJUST_THR  = const(5)    # [°]
 # - ToF distance sensor : "vl6180x"
 # - Display             : "dotstar_feather"
 # - WLAN                : "wlan"
-MORE_DEVICES     = ["compass_cmps12"]
+# - Cameras             : "amg88xx"
+MORE_DEVICES     = ["lsm303"]
 
 # <==
-# ---------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # FROM HERE ON MAKE CHANGES ONLY IF YOU KNOW WHAT YOU'RE DOING
 # (These definitions are also used by the GUI that shows MQTT telemetry)
 # ==>
-# ---------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Robot state-related definitions
 STATE_IDLE       = const(0)
 STATE_WALKING    = const(1)
@@ -119,6 +124,7 @@ STATE_WAKING_UP  = const(6)
 # MQTT releated definitions
 #
 # Message keys
+KEY_RAW          = "raw"
 KEY_SENSOR       = "sensor"
 KEY_COMPASS      = "compass"
 KEY_HEADING      = "heading_deg"
@@ -133,6 +139,11 @@ KEY_STATE        = "state"
 KEY_MOTORLOAD    = "motor_load"
 KEY_STATISTICS   = "stats"
 KEY_TURNS        = "turns"
+KEY_TIMESTAMP    = "timestamp_s"
+KEY_CAM_IR       = "camera_IR"
+KEY_IMAGE        = "image"
+KEY_SIZE         = "size"
+KEY_DEBUG        = "debug"
 
 # Limits for telemetry data
 LIPO_MAX_V       = 4.2
@@ -141,7 +152,7 @@ V_MAX            = 5.0
 LOAD_MAX         = 1500
 LOAD_ARR_LEN     = 200
 LOAD_ARR_BOX     = 1
-LIGHT_ARR_BOX    = 1
+LIGHTDIF_ARR_BOX = 1
 
 # Experimental parameters
 MEM_INC          = 1

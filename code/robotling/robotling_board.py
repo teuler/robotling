@@ -13,8 +13,15 @@ from platform.platform import platform
 
 __version__ = "0.1.1.0"
 
-SPI_FRQ = const(4000000)
-I2C_FRQ = const(100000)
+SPI_FRQ   = const(4000000)
+I2C_FRQ   = const(400000)
+
+# I2C devices, maximal clock frequencies:
+# AMG88XX (Infrared Array Sensor “Grid-EYE”)  <= 400 KHz
+# VL6180X (Time of Flight distance sensor)    <= 400 KHz
+# CMPS12  (Compass)                           <= 400 KHz
+# LSM303  (Compass)                           100, 400 KHz
+# LSM9DS0 (Compass)                           100, 400 KHz
 
 # ----------------------------------------------------------------------------
 # Robotling board connections/pins
@@ -76,7 +83,7 @@ elif platform.ID == platform.ENV_CPY_SAM51:
 
   ENAB_5V = board.RX
   RED_LED = board.D13
-  
+
   ADC_BAT = board.VOLTAGE_MONITOR
 
   if BOARD_VER == 100:

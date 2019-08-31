@@ -44,6 +44,7 @@ class I2CBus(object):
   def __init__(self, _freq, scl, sda):
     self._i2cDevList = []
     self._i2c = I2C(scl=Pin(scl), sda=Pin(sda), freq=_freq)
+    print("I2C bus frequency is {0} kHz".format(_freq/1000))
     print("Scanning I2C bus ...")
     self._i2cDevList = self._i2c.scan()
     print("... {0} device(s) found ({1})"
@@ -71,5 +72,10 @@ class I2CBus(object):
 
   def readfrom_into(self, addr, buf):
     self._i2c.readfrom_into(addr, buf)
+
+  def write_then_readinto(self, addr, bufo, bufi, out_start=0, out_end=None,
+                          in_start=0, in_end=None, stop_=True):
+    self._i2c.writeto(addr, bufo[out_start:out_end], stop_)
+    self._i2c.readfrom_into(addr, bufi[in_start:in_end])
 
 # ----------------------------------------------------------------------------

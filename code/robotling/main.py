@@ -16,6 +16,9 @@
 # 2019-07-13, added new "behaviour" (find light)
 #             `hexbug_config.py` reorganised and cleaned up
 # 2019-07-24, added "memory" to turn direction (experimental)
+# 2019-08-19, in case of an uncaught exception, it tries to send a last
+#             MQTT message containing the traceback to the broker
+#
 # ----------------------------------------------------------------------------
 from hexbug import *
 
@@ -62,29 +65,19 @@ def main():
             # No reason to stop, therefore walk
             r.state = STATE_WALKING
             r.MotorWalk.speed = SPEED_WALK
-
-            if not lastTurnDir == 0:
-              # If just turned and no obstacle, "remember" that this turn
-              # directon was successful
-              r.turnStats += MEM_INC if lastTurnDir > 0 else -MEM_INC
-              lastTurnDir = 0
-            elif not r.turnStats == 0:
-              # If not just turned, slowly "forget" the successful turn
-              # direction
+            if not r.turnStats == 0:
+              # Slowly "forget" the unsuccessful turn direction
               r.turnStats += MEM_DEC if r.turnStats < 0 else -MEM_DEC
+            lastTurnDir = 0
 
           elif r.onTrouble < 0:
             # Obstacle detected -> Stop, turn in a random direction to check
             # (in the next spin) again for obstacles
             r.state = STATE_OBSTACLE
             r.MotorWalk.speed = 0
-            r.spin_ms(200)
-            if r.turnStats == 0:
-              dir = [-1,1][random.randint(0,1)]
-            else:
-              dir = 1 if r.turnStats > 0 else -1
-            lastTurnDir = dir
-            r.MotorTurn.speed = SPEED_TURN *dir
+            r.spin_ms(50)
+            lastTurnDir = r._nextTurnDir(lastTurnDir)
+            r.MotorTurn.speed = SPEED_TURN *lastTurnDir
             r.spin_ms(SPEED_TURN_DELAY)
             r.MotorTurn.speed = 0
 
@@ -93,16 +86,13 @@ def main():
             # direction to check (in the next spin) again for obstacles
             r.state = STATE_CLIFF
             r.MotorWalk.speed = 0
-            r.spin_ms(500)
+            #r.spin_ms(500)
+            r.spin_ms(100)
             r.MotorWalk.speed = -SPEED_WALK
             r.spin_ms(SPEED_BACK_DELAY)
             r.MotorWalk.speed = 0
-            if r.turnStats == 0:
-              dir = [-1,1][random.randint(0,1)]
-            else:
-              dir = 1 if r.turnStats > 0 else -1
-            lastTurnDir = dir
-            r.MotorTurn.speed = SPEED_TURN *dir
+            lastTurnDir = r._nextTurnDir(lastTurnDir)
+            r.MotorTurn.speed = SPEED_TURN *lastTurnDir
             r.spin_ms(SPEED_TURN_DELAY*2)
             r.MotorTurn.speed = 0
 
@@ -130,6 +120,19 @@ r = HexBug(MORE_DEVICES)
 
 # Call main
 if __name__ == "__main__":
-  main()
+  try:
+    main()
+  except Exception as e:
+    # Create an in-memory file-like string object (`sIO`) to accept the
+    # exception's traceback (`sys.print_exception` requires a file-like
+    # object). This traceback string is then converted into a dictionary
+    # to be sent as an MQTT message (if telemetry is activate)
+    if SEND_TELEMETRY and r._t._isReady:
+      import sys, uio
+      sIO = uio.StringIO()
+      sys.print_exception(e, sIO)
+      r._t.publishDict(KEY_RAW, {KEY_DEBUG: str(sIO.getvalue())})
+    # Re-raise the exception such that it becomes also visible in the REPL
+    raise e
 
 # ----------------------------------------------------------------------------

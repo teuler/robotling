@@ -19,7 +19,7 @@ __version__ = "0.1.1.0"
 
 # ----------------------------------------------------------------------------
 class TemporalFilter(object):
-  """Store history of sensor data and provide mean of last n values."""
+  """Store history of sensor data and provide mean."""
 
   def __init__(self, n, typeStr="f", initVal=0):
     self._n = max(n, 2)

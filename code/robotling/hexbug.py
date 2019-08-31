@@ -37,6 +37,9 @@
 #             motor and let the robot walk "more straight";
 #             changed the scan scheme slightly to "left-center-right-center"
 #             instead of "left-right-center"
+# 2019-08-03, new type of Sharp sensor added (GP2Y0AF15X, 1.5-15 cm)
+# 2019-08-19, now an array of IR distance sensors is possible; in this case,
+#             the robot's head is not scanning sideways.
 #
 # ----------------------------------------------------------------------------
 import array
@@ -79,16 +82,33 @@ class HexBug(Robotling):
 
     # Check if VL6180X time-of-flight ranging sensor is present, if not, add
     # analog IR ranging sensor (expected to be connected to A/D channel #0)
+    self.RangingSensor = []
     try:
-      self.RangingSensor = self._VL6180X
-      if not self.RangingSensor.isReady:
+      self.RangingSensor.append(self._VL6180X)
+      if not self.RangingSensor[0].isReady:
         raise AttributeError
-    except:
-      from sensors.sharp_ir_ranging import SharpIRRangingSensor_GP2Y0A41SK0F
-      self.RangingSensor = SharpIRRangingSensor_GP2Y0A41SK0F(self._MCP3208,
-                                                             AI_CH_IR_RANGING)
-      self._MCP3208.channelMask |= 0x01 << AI_CH_IR_RANGING
-    print("Using {0} as ranging sensor".format(self.RangingSensor.name))
+    except AttributeError:
+      if IR_SCAN_SENSOR == 1:
+        # New, smaller sensor GP2Y0AF15X (1.5-15 cm)
+        from sensors.sharp_ir_ranging import GP2Y0AF15X as GP2Y
+      else:
+        # Default to GP2Y0A41SK0F (4-30 cm)
+        from sensors.sharp_ir_ranging import GP2Y0A41SK0F as GP2Y
+
+      # For compatibility: if `AI_CH_IR_RANGING` is a constant then a
+      # single IR sensor is defined, meaning that the robot's head scans
+      # as usual. Otherwise, a list of ranging sensors is initialized.
+      # In this case, it is assumed that an array of IR sensors is attached
+      # and scanning is not needed (new).
+      self.RangingSensor = []
+      isList = type(AI_CH_IR_RANGING) is list
+      AInCh = AI_CH_IR_RANGING if isList else [AI_CH_IR_RANGING]
+      for pin in AInCh:
+        self.RangingSensor.append(GP2Y(self._MCP3208, pin))
+        self._MCP3208.channelMask |= 0x01 << pin
+      self.nRangingSensor = len(self.RangingSensor)
+    print("Using {0}x {1} as ranging sensor(s)"
+          .format(self.nRangingSensor, self.RangingSensor[0].name))
 
     # Define scan positions to cover the ground before the robot. Currently,
     # the time the motor is running (in [s]) is used to define angular
@@ -115,7 +135,13 @@ class HexBug(Robotling):
           if l[j] == pos:
             self._iScanPos[iPos] = j
             break
+    # Generate array for distance data and filters for smoothing distance
+    # readings, if requested
     self._distData = array.array("i", [0] *len(l))
+    if DIST_SMOOTH >= 2:
+      self._distDataFilters = []
+      for iPos in range(len(l)):
+        self._distDataFilters.append(TemporalFilter(DIST_SMOOTH))
 
     # Add the servo that moves the ranging sensor up and down
     self.ServoRangingSensor = Servo(DO_CH_DIST_SERVO,
@@ -128,9 +154,10 @@ class HexBug(Robotling):
     self._turnBias = 0
     self.turnStats = 0
 
+    # If load sensing is enabled and supported by the board, create filters
+    # to smooth the load readings from the motors and change analog sensor
+    # update mask accordingly
     if BOARD_VER >= 120 and USE_LOAD_SENSING:
-      # Create filters to smooth the load readings from the motors and change
-      # analog sensor update mask accordingly
       self.walkLoadFilter = TemporalFilter(5)
       self.turnLoadFilter = TemporalFilter(5)
       self._loadData      = array.array("i", [0]*2)
@@ -163,6 +190,7 @@ class HexBug(Robotling):
     self.RollFilter  = TemporalFilter(8)
 
     self.tTemp = time.ticks_us()
+    self.debug = []
 
     # Starting state
     self.state = STATE_IDLE
@@ -199,13 +227,10 @@ class HexBug(Robotling):
       dL = aid[AI_CH_LIGHT_R] -aid[AI_CH_LIGHT_L]
       self.lightDiff = int(self.LightDiffFilter.mean(dL))
 
-    #_t = time.ticks_us()
     if SEND_TELEMETRY and self._t._isReady:
       # Collect the data ...
-      #self.onboardLED.on()
       mqttd[KEY_STATE] = self.state
       mqttd[KEY_TIMESTAMP] = time.ticks_ms() /1000.
-      #mqttd[KEY_STATISTICS] = {KEY_TURNS :self.turnStats}
       mqttd[KEY_POWER] = {KEY_BATTERY: self.Battery_V}
       if USE_LOAD_SENSING:
         mqttd[KEY_POWER].update({KEY_MOTORLOAD: list(self._loadData)})
@@ -215,12 +240,14 @@ class HexBug(Robotling):
       if DO_FIND_LIGHT:
         _temp = {KEY_INTENSITY: [aid[AI_CH_LIGHT_L], aid[AI_CH_LIGHT_R]]}
         mqttd[KEY_SENSOR].update({KEY_PHOTODIODE: _temp})
-
+      if self._AMG88XX:
+        mqttd[KEY_CAM_IR] = {KEY_SIZE: (8,8)}
+        mqttd[KEY_CAM_IR].update({KEY_IMAGE: list(self._AMG88XX.pixels_64x1)})
+      if len(self.debug) > 0:
+        mqttd[KEY_DEBUG] = self.debug
+        self.debug = []
       # ... and publish
-      self._t.publishDict(mqttd)
-      #self.onboardLED.off()
-    #_delta = time.ticks_diff(time.ticks_us(), _t)
-    #print('Time = {:6.3f}ms'.format(_delta/1000))
+      self._t.publishDict(KEY_RAW, mqttd)
 
     # Change NeoPixel according to state
     i = self.state *3
@@ -234,13 +261,24 @@ class HexBug(Robotling):
     pass
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  def _nextTurnDir(self, lastTurnDir):
+    if not lastTurnDir == 0:
+      # Just turned but not sucessful, therefore remember that
+      # direction
+      self.turnStats += MEM_INC if lastTurnDir > 0 else -MEM_INC
+    if self.turnStats == 0:
+      return [-1,1][random.randint(0,1)]
+    else:
+      return 1 if self.turnStats > 0 else -1
+
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def scanForObstacleOrCliff(self):
     """ Acquires distance data at the scan positions, currently given in motor
         run time (in [s]). Returns -1=obstacle, 1=cliff, and 0=none.
     """
-    b = 0
+    bias = 0
     if DO_FIND_LIGHT:
-      b = -self.lightDiff
+      bias = -self.lightDiff
 
     elif DO_WALK_STRAIGHT:
       # Using the compass, determine current offset from target heading and
@@ -252,16 +290,51 @@ class HexBug(Robotling):
     o = False
     c = False
     l = len(self._scanPos) -1
-    for iPos, Pos in enumerate(self._scanPos):
-      bias = 0 if iPos < l else b
-      self.MotorTurn.speed = SPEED_SCAN *(-1,1)[Pos < 0]
-      self.spin_ms(abs(Pos) +bias)
+    if self.nRangingSensor == 1:
+      # Only one ranging sensor, therefore scan the head back and forth
+      # (as determined in `hexbug_config.py`) to cover the ground in front
+      # of the robot
+      for iPos, Pos in enumerate(self._scanPos):
+        # Turn head into scan position; in the first turn account for a
+        # turning bias resulting from the find light behaviour
+        b = 0 if iPos < l else bias
+        self.MotorTurn.speed = SPEED_SCAN *(-1,1)[Pos < 0]
+        self.spin_ms(abs(Pos) +b)
+        self.MotorTurn.speed = 0
+        # Measure distance for this position ...
+        d = int(self.RangingSensor[0].range_cm)
+        self._distData[self._iScanPos[iPos]] = d
+        # ... check if distance within the danger-free range
+        o = o or (d < DIST_OBST_CM)
+        c = c or (d > DIST_CLIFF_CM)
+    else:
+      # Several ranging sensors installed in an array, therefore head scans
+      # are not needed
+      for iPos in range(self.nRangingSensor):
+        # Read distance from this ranging sensor ...
+        d = int(self.RangingSensor[iPos].range_cm)
+        if DIST_SMOOTH >= 2:
+          d = int(self._distDataFilters[iPos].mean(d))
+        self._distData[iPos] = d
+        # ... check if distance within the danger-free range
+        o = o or (d < DIST_OBST_CM)
+        c = c or (d > DIST_CLIFF_CM)
+
+      # Turn the head slighly to acount for (1) any bias that keeps the
+      # robot from walking straight and (2) any turning bias resulting from
+      # the find light behaviour
+      self.MotorTurn.speed = SPEED_SCAN *(-1,1)[IR_SCAN_BIAS_F < 0]
+      td = abs(IR_SCAN_BIAS_F *200) +bias
+      self.spin_ms(td)
       self.MotorTurn.speed = 0
-      d = int(self.RangingSensor.range_cm)
-      self._distData[self._iScanPos[iPos]] = d
-      o = o or (d < DIST_OBST_CM)
-      c = c or (d > DIST_CLIFF_CM)
-    self._turnBias = b
+      # Make sure that the robot waits a minimum duration before returning
+      # to the main loop
+      sd = SPEED_BACK_DELAY//3 -td
+      if sd > 0:
+        self.spin_ms(sd)
+
+    # Remember turning bias and return result
+    self._turnBias = bias
     return 1 if c else -1 if o else 0
 
   def lookAround(self):
@@ -314,7 +387,7 @@ class HexBug(Robotling):
     self.MotorTurn.speed = 0
     self.ServoRangingSensor.angle = 0
 
-    # Dimm the NeoPixel
+    # Dim the NeoPixel
     for i in range(10, -1, -1):
       self.dimNeoPixel(i/10.0)
       self.spin_ms(250)
@@ -343,7 +416,7 @@ class HexBug(Robotling):
       self.spin_ms(250)
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  def getDist(self, angle=0, trials=1):
+  def getDist(self, angle=0, trials=1, channel=0):
     """ Test function to determine the relevant IR distances.
         Moves IR ranging sensor to "angle" and measures/prints distance
         "trial" times.
@@ -352,7 +425,10 @@ class HexBug(Robotling):
     self.spin_ms(200)
     for i in range(trials):
       self.update()
-      print("{0} cm".format(self.RangingSensor.range_cm))
+      s = ""
+      for ir in self.RangingSensor:
+        s += "{0} ".format(ir.range_cm)
+      print(s)
       self.spin_ms(0 if trials <= 1 else 250)
 
 # ----------------------------------------------------------------------------

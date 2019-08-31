@@ -27,7 +27,7 @@ class Telemetry():
     self._broker    = broker
     self._clientID  = ID
     self._client    = None
-    self._rootTopic = self._clientID
+    self._rootTopic = self._clientID +"/"
 
   def connect(self):
     """ Try to connect to MQTT broker
@@ -51,11 +51,11 @@ class Telemetry():
         print("Error: MQTT brocker {} not responding".format(self._broker))
     print("... done." if self._isReady else "... FAILED")
 
-  def publishDict(self, d):
-    """ Publish a dictionary as a message under the standard topic
+  def publishDict(self, t, d):
+    """ Publish a dictionary as a message under <standard topic>/<t>
     """
     if self._isReady:
-      self._client.publish(self._rootTopic, ujson.dumps(d))
+      self._client.publish(self._rootTopic +t, ujson.dumps(d))
 
   def publish(self, t, m):
     """ Publish a message under <standard topic>/<t>
