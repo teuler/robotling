@@ -10,6 +10,12 @@
 
 ### Release Notes
 
+* 2019-08-31
+  - New type of Sharp sensor added (GP2Y0AF15X, 1.5-15 cm) to `sensors\sharp_ir_ranging.py`. This allows using an array of IR distance sensors such that the robot's head does not need to scan sideways.
+  - I2C frequency increased to 400 kHz in `robotling_board.py`. The I2C frequency used is now also printed when the robot boots.
+  - Robotling v3 in `robotling_board_version.py`.
+  - In case of an uncaught Python exception, the firmware tries to send a last MQTT message containing the traceback, allowing to get information on errors in the code even when the robot is not attached via USB to a REPL.
+  
 * 2019-07-25
   - Now an option was added to send telemetry via WLAN using the MQTT protocol (ESP32 only). An example script (`test_mqtt.py`) that demonstrates how to subcribe to robotling telemetry on a PC was added to `../code`. 
   - `hexbug.py` - Bias factor (`IR_SCAN_BIAS_F`) added to the configuration file `hexbug_config.py`; it allows correcting for a direction bias in the turning motor. Also, the scan scheme was slightly changed from "left-right-center" to "left-center-right-center", which helps the robot to walk more straight.
