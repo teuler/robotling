@@ -15,6 +15,7 @@
   - I2C frequency increased to 400 kHz in `robotling_board.py`. The I2C frequency used is now also printed when the robot boots.
   - Robotling v1.3 board in `robotling_board_version.py`.
   - In case of an uncaught Python exception, the firmware tries to send a last MQTT message containing the traceback, allowing to get information on errors in the code even when the robot is not attached via USB to a REPL.
+  - Wiki page [Telemetrie über MQTT](https://github.com/teuler/robotling/wiki/Telemetrie-%C3%BCber-das-MQTT-Protokoll)
   
 * 2019-07-25
   - Now an option was added to send telemetry via WLAN using the MQTT protocol (ESP32 only). An example script (`test_mqtt.py`) that demonstrates how to subcribe to robotling telemetry on a PC was added to `../code`. 
