@@ -10,6 +10,8 @@
 
 ### Release Notes
 
+* 2019-11-15
+  - New articel in the German Make: magazine (["Krabbelroboter sendet Telemetrie"](https://www.heise.de/select/make/2019/7/1573927054956141)). 
 * 2019-08-31
   - New type of Sharp sensor added (GP2Y0AF15X, 1.5-15 cm) to `sensors\sharp_ir_ranging.py`. This allows using a triple IR distance sensor array such that the robot's head does not need to scan sideways.
   - I2C frequency increased to 400 kHz in `robotling_board.py`. The I2C frequency used is now also printed when the robot boots.
