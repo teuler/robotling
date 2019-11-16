@@ -8,6 +8,10 @@
   <img width="280" height="376" src="https://github.com/teuler/robotling/blob/master/pictures/pic_board_1_2_a_sm.png"></img>
 </p>
 
+### Atom and pymakr under Linux (Ubuntu 18.04)
+
+Currently, the plugin "pymakr" causes errors if install using the usual way from inside Atom. Instead, download the `develop` branch from [GitHub](https://github.com/pycom/pymakr-atom) and follow the instructions under "Manual install" in the readme file.
+
 ### Release Notes
 
 * 2019-11-15
