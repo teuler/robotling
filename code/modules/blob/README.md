@@ -11,10 +11,7 @@ The module `blob` contains a single function which takes a camera image (as a li
 
 `img` contains a single 8x8 frame from the thermal camera with a temperature values (°C) for each pixel, formated as a 1D list:
    ```
-   [21, 21, 22, 23, 23, 21, 20, 20, 21, 21, 24, 24, 25, 22, 21, 21, 20, 
-    21, 23, 25, 26, 25, 21, 21, 21, 21, 23, 26, 27, 26, 24, 22, 21, 22, 
-    23, 25, 26, 28, 27, 28, 21, 21, 23, 26, 26, 26, 27, 26, 21, 21, 22, 
-    23, 23, 23, 22, 23, 21, 22, 22, 21, 22, 21, 22, 23]
+   [21, 21, 22, 23, 23, 21, 20, 20, 21, 21, 24, 24, 25, 22, 21, 21, 20, 21, 23, 25, 26, 25, 21, 21, 21, 21, 23, 26, 27, 26, 24, 22, 21, 22, 23, 25, 26, 28, 27, 28, 21, 21, 23, 26, 26, 26, 27, 26, 21, 21, 22, 23, 23, 23, 22, 23, 21, 22, 22, 21, 22, 21, 22, 23]
    ```
 After blob detection - if blobs were found - `blobList` contains a list of blobs, with each blob represented by a tuple of blob area, index, probability (see below), and blob center position in the frame:   
    ```
