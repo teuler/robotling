@@ -1,4 +1,4 @@
-### The `blob` module
+## The `blob` module
 
 The module `blob` contains a single function which takes a camera image (as a linear list, here `img`), tries to detect "objects" (blobs), and returns a list of these objects. The following is just a code example; for complete code, see [`hexbug.py`](https://github.com/teuler/robotling/blob/master/code/robotling/hexbug.py).
    ```
@@ -31,3 +31,7 @@ _**Important**: This code is preliminary and has not been fully optimized/debugg
 
 - Only filter mode 0 (=no filtering) works currently; the other filters crash the ESP32
 - The "probability" for a blob can exceed 1.0
+
+### Building `blob` into the ESP32 MicroPython firmware
+
+For a detailed description, see [here](https://github.com/teuler/robotling/wiki/Adding-native-modules-to-MicroPython-(ESP32)).
