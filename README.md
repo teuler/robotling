@@ -5,7 +5,7 @@
 <p align="center">
   <img width="280" height="376" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_4857a_sm.png"></img>
   <img width="280" height="376" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_5354.jpg"></img>
-  <img width="280" height="376" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_5731.jpg"></img>
+  <img width="280" height="376" src="https://github.com/teuler/robotling/blob/master/pictures/pic_board_1_2_a_sm.png"></img>
 </p>
 
 ### Release Notes
