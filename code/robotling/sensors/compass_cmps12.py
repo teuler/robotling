@@ -9,6 +9,7 @@
 # 2019-05-06, `getPitchRoll` now returns 4-element tuple, with a -1 at
 #             position 1 to be compatible with the data format returned
 #             by `getHeading3D`
+# 2019-12-21, native code generation added (requires MicroPython >=1.12)
 # ----------------------------------------------------------------------------
 try:
   import struct
@@ -20,7 +21,7 @@ from misc.helpers import timed_function
 from sensors.sensor_base import SensorBase
 import robotling_board as rb
 
-__version__ = "0.1.0.0"
+__version__ = "0.1.1.0"
 CHIP_NAME   = "CMPS12"
 
 # pylint: disable=bad-whitespace
@@ -89,6 +90,7 @@ class Compass(SensorBase):
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   #@timed_function
+  @micropython.native
   def getHeading(self, tilt=False, calib=False, hires=True):
     """ Returns heading with or w/o tilt compensation and/or calibration,
         if available.
@@ -112,6 +114,7 @@ class Compass(SensorBase):
 
 
   #@timed_function
+  @micropython.native
   def getHeading3D(self, calib=False):
     """ Returns heading, pitch and roll in [°] with or w/o calibration,
         if available.
@@ -132,6 +135,7 @@ class Compass(SensorBase):
 
 
   #@timed_function
+  @micropython.native
   def getPitchRoll(self, radians=False):
     """ Returns error code, pitch and roll in [°] as a tuple
     """

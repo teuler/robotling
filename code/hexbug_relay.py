@@ -12,10 +12,6 @@
 #   --guid or -g
 # for instance:
 #   python .\hexbug_relay.py -g robotling_b4e62da1dccd
-#   python .\hexbug_relay.py -g robotling_30aea413e508
-# with:
-#   robotling_b4e62da1dccd - blue hexbug
-#   robotling_30aea413e508 - orange hexbug
 #
 # ---------------------------------------------------------------------
 import json
@@ -130,6 +126,7 @@ if __name__ == '__main__':
               if j > 0 and len(ln) > 1:
                 topic += "/"
               topic += s
+            print(s, msg)  
             Client.publish(topic, payload=msg, qos=0, retain=False)
 
       # Sleep for a bit

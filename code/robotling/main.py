@@ -36,6 +36,7 @@ def main():
   try:
     try:
       lastTurnDir = 0
+      round = 0
 
       while True:
         try:
@@ -52,9 +53,10 @@ def main():
             r.lookAround()
             continue
 
-          # Sleep sometimes
-          if random.randint(1,1000) <= DO_TAKE_NAPS:
-            r.nap()
+          # If blob following behaviour is activated, check for blobs every
+          # 10th round
+          if DO_FOLLOW_BLOB and round % 10 == 0:
+            r.lookAtBlob(BLOB_MIN_AREA, BLOB_MIN_PROB)
             continue
 
           # Check if obstacle or cliff
@@ -104,6 +106,7 @@ def main():
         finally:
           # Make sure the robotling board get updated at least once per loop
           r.spin_ms()
+          round += 1
 
     except KeyboardInterrupt:
       print("Loop stopped.")

@@ -22,6 +22,15 @@
 # 2019-05-23        LSM9DS0 accelerometer/magnetometer/gyroscope support added
 # 2019-07-13, v1.7, `hexbug_config.py` reorganised and cleaned up
 # 2019-07-25,       Added `wlan` to the list of possible devices
+# 2019-08-03, v1.8, AMG88XX (8x8 IR camera) driver added
+#                   `I2C_FRQ` increased; from specs this should be compatible
+#                   with all currently supported I2C devices
+# 2019-12-21, v1.9, Micropython 1.12.0
+#                   - hardware I2C bus option added
+#                   - native code generation added (needs MicroPython >=1.12)
+#                   Define PWM frequencies for servos and DC motors to account
+#                   for the fact the the ESP32 port supports only a single
+#                   frequency for all PWM pins (see `robotling_board.py`)
 #
 # Open issues:
 # - NeoPixels don't yet quite as expected with the LoBo ESP32 MicroPython
@@ -56,7 +65,7 @@ else:
   from platform.m4ex.neopixel import NeoPixel
   import platform.m4ex.time as time
 
-__version__ = "0.1.7.0"
+__version__ = "0.1.9.0"
 
 # ----------------------------------------------------------------------------
 class Robotling():
@@ -96,6 +105,7 @@ class Robotling():
   - _LSM303        : magnetometer/accelerometer driver (if available)
   - _LSM9DS0       : accelerometer/magnetometer/gyroscope driver (if available)
   - _VL6180X       : time-of-flight distance sensor driver (if available)
+  - _AMG88XX       : GRID-Eye IR 8x8 thermal camera driver (if available)
   - _DS            : DotStar array feather (if available)
   - _motorDriver   : 2-channel DC motor driver
   - _spinTracker   : Tracks performance of `spin_ms()` function
@@ -117,14 +127,14 @@ class Robotling():
     print("Robotling (board v{0:.2f}, software v{1}) w/ MicroPython {2} ({3})"
           .format(BOARD_VER/100, __version__, platform.sysInfo[2],
                   platform.sysInfo[0]))
+    print("Initializing ...")
 
     # Initialize some variables
     self._devices = devices
     self._ID = platform.GUID
-    print("GUID = '{0}'".format(self.ID))
+    print("[{0:>12}] {1:35}".format("GUID", self.ID))
 
     # Initialize on-board (feather) hardware
-    print("Initializing ...")
     self.onboardLED = dio.DigitalOut(rb.RED_LED, value=False)
     self._adc_battery = aio.AnalogIn(rb.ADC_BAT)
 
@@ -136,16 +146,27 @@ class Robotling():
     self._MCP3208 = mcp3208.MCP3208(self._SPI, rb.CS_ADC)
 
     # Initialize motor driver
-    self._motorDriver = drv8835.DRV8835(drv8835.MODE_PH_EN,
+    self._motorDriver = drv8835.DRV8835(drv8835.MODE_PH_EN, rb.MOTOR_FRQ,
                                         rb.A_ENAB, rb.A_PHASE,
                                         rb.B_ENAB, rb.B_PHASE)
 
-    # Get I2C bus
-    self._I2C = busio.I2CBus(rb.I2C_FRQ, rb.SCL, rb.SDA)
+    # Initialize Neopixel (connector)
+    self._NPx = NeoPixel(rb.NEOPIX, 1)
+    self._NPx0_RGB = bytearray([0]*3)
+    self._NPx0_curr = array.array("i", [0,0,0])
+    self._NPx0_step = array.array("i", [0,0,0])
+    self.NeoPixelRGB = 0
+    print("[{0:>12}] {1:35}".format("Neopixel", "ready"))
 
-    self.Compass = None
+    # Get hardware I2C bus (#0)
+    self._I2C = busio.I2CBus(rb.I2C_FRQ, rb.SCL, rb.SDA, code=0)
+
+    # Reset potential "device" objects
     self._VL6180X = None
     self._DS = None
+    self._AMG88XX = None
+    self.Compass = None
+    self.Camera = None
 
     # Initialize further devices depending on the selected onboard components
     # (e.g. which type of magnetometer/accelerometer/gyro, etc.)
@@ -183,17 +204,16 @@ class Robotling():
       self._DS[0] = 0
       self._DS.show()
 
+    if "amg88xx" in devices:
+      # IR 8x8 thermal camera (AMG88XX) is mounted
+      import driver.amg88xx as amg88xx
+      from sensors.camera_thermal import Camera
+      self._AMG88XX = amg88xx.AMG88XX(self._I2C)
+      self.Camera = Camera(self._AMG88XX)
+
     if "wlan" in devices:
       # Connect to WLAN, if not already connected
       self.connectToWLAN()
-
-    # Initialize Neopixel (connector)
-    self._NPx = NeoPixel(rb.NEOPIX, 1)
-    self._NPx0_RGB = bytearray([0]*3)
-    self._NPx0_curr = array.array("i", [0,0,0])
-    self._NPx0_step = array.array("i", [0,0,0])
-    self.NeoPixelRGB = 0
-    print("NeoPixel ready.")
 
     # Initialize spin function-related variables
     self._spin_period_ms = 0

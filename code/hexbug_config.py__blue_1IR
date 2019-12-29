@@ -66,7 +66,13 @@ SPEED_TURN       = const(35)   # .. for turning head when changing direction
 SPEED_SCAN       = const(55)   # .. for turning head when scanning
 SPEED_TURN_DELAY = const(450)  # Duration for turning in new direction
 SPEED_BACK_DELAY = const(500)  # Duration for backing up (cliff)
-
+"""
+SPEED_WALK       = const(0)    # .. for walking forwards
+SPEED_TURN       = const(0)    # .. for turning head when changing direction
+SPEED_SCAN       = const(0)    # .. for turning head when scanning
+SPEED_TURN_DELAY = const(450)  # Duration for turning in new direction
+SPEED_BACK_DELAY = const(500)  # Duration for backing up (cliff)
+"""
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Options, depending on board and sensor complement
 USE_LOAD_SENSING = const(1)    # Use AI channels #6,7 for load-sensing (> v1.1)
@@ -92,7 +98,7 @@ NAP_TO_S         = const(20)   # ... in [s]
 # Uses a photodiode pair to home in on a light source. Give pins that connect
 # to the photodiodes in `AI_CH_LIGHT_R` and `AI_CH_LIGHT_L` (above)
 # (obviously, does not work together `DO_WALK_STRAIGHT`)
-DO_FIND_LIGHT    = const(0)    # 1=enabled
+DO_FIND_LIGHT    = const(1)    # 1=enabled
 
 # Follow the heat "blob"
 # ...

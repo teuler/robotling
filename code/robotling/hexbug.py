@@ -40,11 +40,16 @@
 # 2019-08-03, new type of Sharp sensor added (GP2Y0AF15X, 1.5-15 cm)
 # 2019-08-19, now an array of IR distance sensors is possible; in this case,
 #             the robot's head is not scanning sideways.
+# 2019-09-01, Optionally encrypted MQTT messages; also. SSL connections to
+#             the broker are now possible
+# 2019-12-25, Configuration file split into fixed (`hexbug_global.py`) and
+#             robot-dependent definitions
+#             New behaviour `lookAtBlob` using the thermal camera.
 #
 # ----------------------------------------------------------------------------
 import array
 import random
-from micropython import const
+from micropython import const #, mem_info, stack_use
 import robotling_board as rb
 import driver.drv8835 as drv8835
 from robotling import Robotling
@@ -52,6 +57,7 @@ from robotling_board_version import BOARD_VER
 from motors.dc_motor import DCMotor
 from motors.servo import Servo
 from misc.helpers import TemporalFilter
+from hexbug_global import *
 from hexbug_config import *
 
 from platform.platform import platform
@@ -61,17 +67,6 @@ if platform.ID == platform.ENV_ESP32_UPY:
     mqttd = dict()
 else:
   import platform.m4ex.time as time
-
-# ----------------------------------------------------------------------------
-# NeoPixel colors (r,g,b) for the different states
-STATE_COLORS     = bytearray((
-                   10,10,10,   # STATE_IDLE
-                   20,70,0,    # STATE_WALKING
-                   40,30,0,    # STATE_LOOKING
-                   20,00,50,   # STATE_ON_HOLD
-                   90,30,0,    # STATE_OBSTACLE
-                   90,0,30,    # STATE_CLIFF
-                   10,60,60))  # STATE_WAKING_UP
 
 # ----------------------------------------------------------------------------
 class HexBug(Robotling):
@@ -144,7 +139,7 @@ class HexBug(Robotling):
         self._distDataFilters.append(TemporalFilter(DIST_SMOOTH))
 
     # Add the servo that moves the ranging sensor up and down
-    self.ServoRangingSensor = Servo(DO_CH_DIST_SERVO,
+    self.ServoRangingSensor = Servo(DO_CH_DIST_SERVO, freq=rb.SERVO_FRQ,
                                     us_range=[MIN_US_SERVO, MAX_US_SERVO],
                                     ang_range=[MIN_DIST_SERVO, MAX_DIST_SERVO])
 
@@ -219,6 +214,9 @@ class HexBug(Robotling):
     # Save heading
     self.currHead = ehpr[1]
 
+    if DO_FOLLOW_BLOB and self.Camera:
+      self.Camera.detectBlobs(filter=BLOB_FILTER, nsd=BLOB_MIN_N_SD)
+
     if USE_LOAD_SENSING:
       self._loadData[0] = int(self.walkLoadFilter.mean(self._MCP3208.data[6]))
       self._loadData[1] = int(self.turnLoadFilter.mean(self._MCP3208.data[7]))
@@ -240,9 +238,9 @@ class HexBug(Robotling):
       if DO_FIND_LIGHT:
         _temp = {KEY_INTENSITY: [aid[AI_CH_LIGHT_L], aid[AI_CH_LIGHT_R]]}
         mqttd[KEY_SENSOR].update({KEY_PHOTODIODE: _temp})
-      if self._AMG88XX:
-        mqttd[KEY_CAM_IR] = {KEY_SIZE: (8,8)}
-        mqttd[KEY_CAM_IR].update({KEY_IMAGE: list(self._AMG88XX.pixels_64x1)})
+      if DO_FOLLOW_BLOB and self.Camera:
+        mqttd[KEY_CAM_IR] = {KEY_SIZE: (8,8), KEY_BLOBS: self.Camera.blobsRaw}
+        mqttd[KEY_CAM_IR].update({KEY_IMAGE: self.Camera.imageLinear})
       if len(self.debug) > 0:
         mqttd[KEY_DEBUG] = self.debug
         self.debug = []
@@ -277,6 +275,8 @@ class HexBug(Robotling):
         run time (in [s]). Returns -1=obstacle, 1=cliff, and 0=none.
     """
     bias = 0
+    isBlob = False
+
     if DO_FIND_LIGHT:
       bias = -self.lightDiff
 
@@ -284,12 +284,27 @@ class HexBug(Robotling):
       # Using the compass, determine current offset from target heading and
       # set a new bias (in [ms]) by which the head position is corrected. This
       # is done by biasing the head direction after scanning for obstacles
+      # NOTE: NOT YET FULLY IMPLEMENTED
       dh = self.currHead -self.cpsTargetHead
       tb = dh *HEAD_ADJUST_FACT if abs(dh) > HEAD_ADJUST_THR else 0
+
+    # ****************************************
+    # ****************************************
+    # ****************************************
+    """
+    elif DO_FOLLOW_BLOB:
+      # TODO
+      xy = self.Camera.getBestBlob(5, 0.60)
+      isBlob = not xy is None
+    """
+    # ****************************************
+    # ****************************************
+    # ****************************************
 
     o = False
     c = False
     l = len(self._scanPos) -1
+    self.ServoRangingSensor.angle = SCAN_DIST_SERVO
     if self.nRangingSensor == 1:
       # Only one ranging sensor, therefore scan the head back and forth
       # (as determined in `hexbug_config.py`) to cover the ground in front
@@ -320,23 +335,47 @@ class HexBug(Robotling):
         o = o or (d < DIST_OBST_CM)
         c = c or (d > DIST_CLIFF_CM)
 
-      # Turn the head slighly to acount for (1) any bias that keeps the
-      # robot from walking straight and (2) any turning bias resulting from
-      # the find light behaviour
-      self.MotorTurn.speed = SPEED_SCAN *(-1,1)[IR_SCAN_BIAS_F < 0]
-      td = abs(IR_SCAN_BIAS_F *200) +bias
-      self.spin_ms(td)
+      if True: #not DO_FOLLOW_BLOB: #isBlob:
+        # Turn the head slighly to acount for (1) any bias that keeps the
+        # robot from walking straight and (2) any turning bias resulting from
+        # the find light behaviour
+        self.MotorTurn.speed = SPEED_SCAN *(-1,1)[IR_SCAN_BIAS_F < 0]
+        td = abs(IR_SCAN_BIAS_F *200) +bias
+        self.spin_ms(td)
+        self.MotorTurn.speed = 0
+        # Make sure that the robot waits a minimum duration before returning
+        # to the main loop
+        sd = SPEED_BACK_DELAY//3 -td
+        if sd > 0:
+          self.spin_ms(sd)
+
+    # ****************************************
+    # ****************************************
+    # ****************************************
+    """
+    if isBlob:
+      self.debug.append("{0:.2f},{1:.2f} -> {2} ({3:.2f})".format(xy[0], xy[1],
+                        "turn left" if xy[0] < 0 else "turn right",
+                        abs(xy[0]/4)))
+      print(self.debug[0])
+      #self.MotorWalk.speed = 0
+      c = 0
+      d = 0
+      if abs(xy[0]) > 0.1:
+        d = 1 if xy[0] > 0 else -1
+      self.MotorTurn.speed = int(SPEED_SCAN *d *abs(xy[0]/4) *5)
+      self.spin_ms(100)
       self.MotorTurn.speed = 0
-      # Make sure that the robot waits a minimum duration before returning
-      # to the main loop
-      sd = SPEED_BACK_DELAY//3 -td
-      if sd > 0:
-        self.spin_ms(sd)
+    """
+    # ****************************************
+    # ****************************************
+    # ****************************************
 
     # Remember turning bias and return result
     self._turnBias = bias
     return 1 if c else -1 if o else 0
 
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def lookAround(self):
     """ Make an appearance of "looking around"
     """
@@ -376,6 +415,55 @@ class HexBug(Robotling):
       if DO_WALK_STRAIGHT and not DO_FIND_LIGHT:
         self._targetHead = self.Compass.getHeading()
 
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  def lookAtBlob(self, minBlobArea, minBlobProb):
+    """ Look at (heat) blob
+    """
+    # Stop all motors and change state
+    self.MotorWalk.speed = 0
+    self.MotorTurn.speed = 0
+    prevState = self.state
+    self.state = STATE_SEEK_BLOB
+    maxPit = max(MAX_DIST_SERVO, MIN_DIST_SERVO)
+    dxy = self.Camera.resolution
+    dx2 = dxy[0]/2
+    pit = SCAN_DIST_SERVO
+    pBl = minBlobProb/100
+    xF  = TemporalFilter(3)
+    yF  = TemporalFilter(3)
+
+    # Move head towards a blob if one is detected
+    try:
+      for i in range(BLOB_ROUNDS):
+        if self.onHold:
+          break
+        xy = self.Camera.getBestBlob(minBlobArea, pBl)
+        if not xy is None:
+          # Suitable blob found
+          xBl = xF.mean(xy[0])
+          yBl = yF.mean(xy[1])
+          xdir = 0
+          if abs(xBl) > BLOB_MIN_XY_OFFS:
+            xdir = 1 if xBl > 0 else -1
+          ydir = 0
+          if abs(yBl) > BLOB_MIN_XY_OFFS:
+            ydir = BLOB_YSTEP if yBl > 0 else -BLOB_YSTEP
+          pit += ydir *abs(yBl/dx2)
+          pit = int(min(max(-maxPit, pit), maxPit))
+          self.ServoRangingSensor.angle = pit
+          self.MotorTurn.speed = int(SPEED_SCAN *xdir *abs(xBl/dx2) *BLOB_TSF)
+          self.spin_ms(BLOB_SPIN_MS)
+          self.MotorTurn.speed = 0
+        else:
+          self.spin_ms(BLOB_SPIN_MS)
+    finally:
+      # Stop head movement, if any, move the IR sensor back into scan
+      # position and change back state
+      self.MotorTurn.speed = 0
+      self.ServoRangingSensor.angle = SCAN_DIST_SERVO
+      self.state = prevState
+
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def nap(self):
     """ Take a nap
     """

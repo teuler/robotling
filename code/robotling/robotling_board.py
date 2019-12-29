@@ -61,6 +61,11 @@ if platform.ID == platform.ENV_ESP32_UPY:
     DIO2    = board.D33
     DIO3    = board.D32
 
+  # Note that the ESP32 Microsoft port currently supports only one frequency
+  # for all PWM objects. Servos usually expect 50 Hz, but to run the DC motors
+  # somewhat smoother, a higher frequency can be tested
+  SERVO_FRQ = 100 #250
+  MOTOR_FRQ = SERVO_FRQ
 
 elif platform.ID == platform.ENV_CPY_SAM51:
   import board
@@ -105,6 +110,9 @@ elif platform.ID == platform.ENV_CPY_SAM51:
     DIO1    = board.D13
     DIO2    = board.D10
     DIO3    = board.D6
+
+  SERVO_FRQ = 50
+  MOTOR_FRQ = 150
 
 # ----------------------------------------------------------------------------
 # The battery is connected to the pin via a voltage divider (1/2), and thus

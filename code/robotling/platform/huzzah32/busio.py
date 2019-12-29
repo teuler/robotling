@@ -7,11 +7,13 @@
 # The MIT License (MIT)
 # Copyright (c) 2018 Thomas Euler
 # 2018-09-21, v1
+# 2019-12-21, v1.1 - hardware I2C bus possible
 # ----------------------------------------------------------------------------
-from micropython import const
+from os import uname
 from machine import SPI, Pin, I2C
+from micropython import const
 
-__version__ = "0.1.0.0"
+__version__ = "0.1.1.0"
 
 # ----------------------------------------------------------------------------
 class SPIBus(object):
@@ -41,10 +43,18 @@ class SPIBus(object):
 class I2CBus(object):
   """I2C bus access."""
 
-  def __init__(self, _freq, scl, sda):
+  def __init__(self, _freq, scl, sda, code=-1):
     self._i2cDevList = []
-    self._i2c = I2C(scl=Pin(scl), sda=Pin(sda), freq=_freq)
-    print("I2C bus frequency is {0} kHz".format(_freq/1000))
+    v = float(uname()[2][:4])
+    if not code in [-1,0,1] or v < 1.12:
+      # Defaults to software implementation of I2C
+      self._i2c = I2C(scl=Pin(scl), sda=Pin(sda), freq=_freq)
+      codeStr = "Software"
+    else:
+      # User selected -1=software or 0,1=hardware implementation of I2C
+      self._i2c = I2C(code, scl=Pin(scl), sda=Pin(sda), freq=_freq)
+      codeStr = "Software" if code == -1 else "Hardware #{0}".format(code)
+    print("{0} I2C bus frequency is {1} kHz".format(codeStr, _freq/1000))
     print("Scanning I2C bus ...")
     self._i2cDevList = self._i2c.scan()
     print("... {0} device(s) found ({1})"

@@ -22,6 +22,8 @@
 #             NOTE: This is under construction, the compass tilt correction
 #                   and the calibration does not work yet for the LSM303 nor
 #                   the LSM9DS0.
+# 2019-12-21, native code generation added (requires MicroPython >=1.12)
+#
 # ----------------------------------------------------------------------------
 import time
 import array
@@ -30,7 +32,7 @@ from math import pi, sin, cos, asin, acos, atan2, sqrt
 from sensors.sensor_base import SensorBase
 from misc.helpers import timed_function
 
-__version__ = "0.1.1.1"
+__version__ = "0.1.1.2"
 
 # ----------------------------------------------------------------------------
 class Compass(SensorBase):
@@ -79,6 +81,7 @@ class Compass(SensorBase):
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   #@timed_function
+  @micropython.native
   def getHeading(self, tilt=False, calib=False, hires=True):
     """ Returns heading with or w/o tilt compensation and/or calibration,
         if available.
@@ -126,6 +129,7 @@ class Compass(SensorBase):
 
 
   #@timed_function
+  @micropython.native
   def getHeading3D(self, calib=False):
     """ Returns heading, pitch and roll in [°] with or w/o calibration,
         if available.
@@ -138,6 +142,7 @@ class Compass(SensorBase):
 
 
   #@timed_function
+  @micropython.native
   def getPitchRoll(self, radians=False):
     """ Returns error code, pitch and roll in [°] as a 4-element tuple.
         Note that the second element is -1, such that the data format

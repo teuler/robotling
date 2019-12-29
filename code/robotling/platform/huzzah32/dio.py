@@ -7,6 +7,8 @@
 # The MIT License (MIT)
 # Copyright (c) 2018 Thomas Euler
 # 2018-11-25, v1
+# 2019-12-25, Note that the ESP32 Microsoft port supports only one frequency
+#             for all PWM objects.
 # ----------------------------------------------------------------------------
 from micropython import const
 from machine import Pin, PWM
@@ -65,9 +67,11 @@ class DigitalIn(object):
 class PWMOut(object):
   """PWM output."""
 
-  def __init__(self, pin, freq=5000, duty=0):
+  def __init__(self, pin, freq=50, duty=0, verbose=False):
     self._pin = PWM(Pin(pin))
     self._pin.init(freq=freq, duty=duty)
+    if verbose:
+      self.__logFrequency()
 
   def deinit(self):
     self._pin.deinit()
@@ -101,9 +105,13 @@ class PWMOut(object):
   @freq_Hz.setter
   def freq_Hz(self, value):
     self._pin.freq(value)
+    self.__logFrequency()
 
   @property
   def max_duty(self):
     return MAX_DUTY
+
+  def __logFrequency(self):
+    print("PWM frequency is {0} Hz".format(self._pin.freq()))
 
 # ----------------------------------------------------------------------------

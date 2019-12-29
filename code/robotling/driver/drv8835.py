@@ -27,13 +27,12 @@ MODE_IN_IN  = const(1)
 MODE_PH_EN  = const(2)
 MOTOR_A     = const(0)
 MOTOR_B     = const(1)
-PWM_FRQ     = const(75000)
 
 # ----------------------------------------------------------------------------
 class DRV8835(object):
   """Driver for Pololu dual-channel DC motor H-bridge DRV8835."""
 
-  def __init__(self, mode, pinA_EN, pinA_PHASE, pinB_EN, pinB_PHASE):
+  def __init__(self, mode, freq, pinA_EN, pinA_PHASE, pinB_EN, pinB_PHASE):
     """ Initialises the pins that are connected to the H-bridges
     """
     # Initialize pins depending on mode
@@ -42,16 +41,19 @@ class DRV8835(object):
     self._mode    = MODE_NONE
     self._speed   = array.array('i', [0, 0])
     if mode == MODE_PH_EN:
-      self.pinA_EN = dio.PWMOut(pinA_EN, freq=PWM_FRQ, duty=0)
+      self.pinA_EN = dio.PWMOut(pinA_EN, freq=freq, duty=0)
       self.pinA_PH = dio.DigitalOut(pinA_PHASE)
-      self.pinB_EN = dio.PWMOut(pinB_EN, freq=PWM_FRQ, duty=0)
+      self.pinB_EN = dio.PWMOut(pinB_EN, freq=freq, duty=0)
       self.pinB_PH = dio.DigitalOut(pinB_PHASE)
       self._mode = MODE_PH_EN
+
+      #print(self.pinA_EN._pin.freq(), self.pinB_EN._pin.freq())
     elif mode == MODE_IN_IN:
       print("IN/IN mode not implemented.")
 
+    s = "2-channel DC motor driver ({0} Hz)".format(self.pinA_EN.freq_Hz)
     print("[{0:>12}] {1:35} ({2}): {3}"
-          .format(CHIP_NAME, "2-channel DC motor driver", __version__,
+          .format(CHIP_NAME, s, __version__,
                   "ok" if self._mode != MODE_NONE else "FAILED"))
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

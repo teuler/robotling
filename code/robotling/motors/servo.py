@@ -50,7 +50,7 @@ class Servo(object):
     self._angle      = 0
     self._pwm        = dio.PWMOut(pin, freq=freq, duty=0)
     self._max_duty   = self._pwm.max_duty
-    print("Servo is ready.")
+    print("Servo ({0} Hz) is ready.".format(freq))
 
   @property
   def angle(self):
