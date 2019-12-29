@@ -1,6 +1,6 @@
 # robotling
 
-"robotling" is a simple circuit board to control small robots. Check out the videos (videos [1](https://youtu.be/wil41YtIeN8), [2](https://youtu.be/cLstXW3RsBA), and [3](https://www.youtube.com/watch?v=XF0T9Dlb07M)) and find the details in the German [wiki](https://github.com/teuler/robotling/wiki). 
+"robotling" is a simple circuit board to control small robots. Check out the videos (videos [1](https://youtu.be/wil41YtIeN8), [2](https://youtu.be/cLstXW3RsBA), [3](https://www.youtube.com/watch?v=XF0T9Dlb07M), and with thermal camera, [4](https://youtu.be/tlYXab0FZrY), [5](https://youtu.be/qpSQO51BuJs)) and find the details in the German [wiki](https://github.com/teuler/robotling/wiki). 
 
 <p align="center">
   <img width="280" height="376" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_4857a_sm.png"></img>
@@ -10,6 +10,9 @@
 
 ### Release Notes
 
+* 2019-12-30
+  - Some changes to the code: **details soon**
+  - thermal camera support added (see videos [4](https://youtu.be/tlYXab0FZrY), [5](https://youtu.be/qpSQO51BuJs))
 * 2019-11-15
   - New articel in the German Make: magazine (["Krabbelroboter sendet Telemetrie"](https://www.heise.de/select/make/2019/7/1573927054956141)). 
 * 2019-08-31
