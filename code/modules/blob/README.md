@@ -8,8 +8,10 @@ The module `blob` contains a single function which takes a camera image (as a li
    AMG88XX = amg88xx.AMG88XX(I2C)      # with I2C being an initialized I2C bus instance
    [...]
    img = list(AMG88XX.pixels_64x1)
-   blobList = blob.detect(img, (8,8), (0, 0.5) )
+   blobList = blob.detect(img, (8,8), (0, 0.5))
    ```
+   
+`blob.detect()` requires an image frame (as a linear list, see below), the frame size as a tuple (e.g. `(8,8)` for an 8x8 pixel frame) and a parameter tuple, consisting of the filter mode (`0`, no filter) and a threshold (`0.5`). The latter defines the number of standard deviations a blob maximum must higher that the mean frame intensity to be included as a valid blob.     
 
 `img` contains a single 8x8 frame from the thermal camera with a temperature values (°C) for each pixel, formated as a 1D list:
    ```
