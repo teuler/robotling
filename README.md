@@ -11,7 +11,7 @@
 ### Release Notes
 
 * 2019-12-29
-  - Thermal camera support added; new behaviour `lookAtBlob` using the thermal camera (see videos [4](https://youtu.be/qpSQO51BuJs), [5](https://youtu.be/tlYXab0FZrY)). **Note** that the blob detection (not the camera itself) requires a custom MicroPython firmware that includes the module `blob` (coded in C for speed reasons).  
+  - Thermal camera support added; new behaviour `lookAtBlob` using the thermal camera (see videos [4](https://youtu.be/qpSQO51BuJs), [5](https://youtu.be/tlYXab0FZrY)). _Note that the blob detection (not the camera itself) requires a custom MicroPython firmware that includes the module `blob` (coded in C for speed reasons)._  
   - Configuration file split into fixed (`hexbug_global.py`) and robot-dependent definitions
   - Code adapted to 1.12.x, including hardware I2C bus option added and native code generation added for time critical routines (ESP32 only)
   - PWM frequencies for servos and DC motors are now defined in `robotling_board.py` to account for the fact that the ESP32 port supports only a single frequency for all PWM pins
