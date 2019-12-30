@@ -55,7 +55,7 @@ def main():
 
           # If blob following behaviour is activated, check for blobs every
           # 10th round
-          if DO_FOLLOW_BLOB and round % 10 == 0:
+          if DO_FOLLOW_BLOB and round % 20 == 0:
             r.lookAtBlob(BLOB_MIN_AREA, BLOB_MIN_PROB)
             continue
 

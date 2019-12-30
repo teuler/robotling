@@ -11,6 +11,7 @@ import array
 from micropython import const
 from misc.helpers import timed_function
 
+import robotling_board as rb
 from platform.platform import platform
 if platform.ID == platform.ENV_ESP32_UPY:
   import platform.huzzah32.dio as dio
@@ -41,17 +42,17 @@ class DRV8835(object):
     self._mode    = MODE_NONE
     self._speed   = array.array('i', [0, 0])
     if mode == MODE_PH_EN:
-      self.pinA_EN = dio.PWMOut(pinA_EN, freq=freq, duty=0)
+      self.pinA_EN = dio.PWMOut(pinA_EN, freq=freq, channel=rb.MOTOR_A_CH)
       self.pinA_PH = dio.DigitalOut(pinA_PHASE)
-      self.pinB_EN = dio.PWMOut(pinB_EN, freq=freq, duty=0)
+      self.pinB_EN = dio.PWMOut(pinB_EN, freq=freq, channel=rb.MOTOR_B_CH)
       self.pinB_PH = dio.DigitalOut(pinB_PHASE)
       self._mode = MODE_PH_EN
 
-      #print(self.pinA_EN._pin.freq(), self.pinB_EN._pin.freq())
     elif mode == MODE_IN_IN:
       print("IN/IN mode not implemented.")
 
-    s = "2-channel DC motor driver ({0} Hz)".format(self.pinA_EN.freq_Hz)
+    f = self.pinA_EN.freq_Hz/10**6
+    s = "2x DC motor driver ({0:.3f} MHz)".format(f)
     print("[{0:>12}] {1:35} ({2}): {3}"
           .format(CHIP_NAME, s, __version__,
                   "ok" if self._mode != MODE_NONE else "FAILED"))

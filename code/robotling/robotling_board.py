@@ -61,11 +61,15 @@ if platform.ID == platform.ENV_ESP32_UPY:
     DIO2    = board.D33
     DIO3    = board.D32
 
-  # Note that the ESP32 Microsoft port currently supports only one frequency
+  # Note 1: The ESP32 Microsoft port currently supports only one frequency
   # for all PWM objects. Servos usually expect 50 Hz, but to run the DC motors
   # somewhat smoother, a higher frequency can be tested
-  SERVO_FRQ = 100 #250
-  MOTOR_FRQ = SERVO_FRQ
+  # Note 2: DIO uses now the RMT feature of the ESP32, which offers an
+  # alternative to the standard PWM with more flexible frequencies
+  SERVO_FRQ  = 50 #250
+  MOTOR_FRQ  = SERVO_FRQ
+  MOTOR_A_CH = 0
+  MOTOR_B_CH = 1
 
 elif platform.ID == platform.ENV_CPY_SAM51:
   import board
@@ -111,8 +115,14 @@ elif platform.ID == platform.ENV_CPY_SAM51:
     DIO2    = board.D10
     DIO3    = board.D6
 
+  # The M4 allows for different frequencies for PWM channels; `MOTOR_A_CH`
+  # and `MOTOR_B_CH` are -1 because the RMT feature of the ESP32 is not
+  # available not nescessary here
   SERVO_FRQ = 50
   MOTOR_FRQ = 150
+  MOTOR_A_CH = -1
+  MOTOR_B_CH = -1
+
 
 # ----------------------------------------------------------------------------
 # The battery is connected to the pin via a voltage divider (1/2), and thus

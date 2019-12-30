@@ -47,7 +47,9 @@ class Camera(CameraBase):
     if self._driver.isReady:
       self._params = (filter, nsd)
       self._img64x1 = list(self._driver.pixels_64x1)
+      #print(self._img64x1)
       self._blobList = blob.detect(self._img64x1, self._dxy, self._params)
+      #print(self._blobList)
 
   @property
   def blobsRaw(self):
