@@ -2,8 +2,10 @@ This folder contains python code that runs on a PC, e.g. to communicate with a r
 - `test_mqtt.py` - Simple example script that illustrates how to receive MQTT telemetry from a robotling
 - `hexbug_relay.py` Script that resends HexBug robotling MQTT messages under "proper" topics
 
-The folder `robotling` contains the code that runs on the roboter.
-The folder `modules/blob` contains the C code for a simple module that takes a camera image (i.e. from the thermal camera), detects "blobs" and returns them as a list. This module has to be built into the Micropython firmware; see [notes](https://github.com/teuler/robotling/tree/master/code/modules/blob) in the `module/blob` folder.
+The folder `robotling` contains the code that runs on the roboter.  
+
+The folder `modules/blob` contains the C code for a simple module that takes a camera image (i.e. from the thermal camera), detects "blobs" and returns them as a list. This module has to be built into the Micropython firmware; see [notes](https://github.com/teuler/robotling/tree/master/code/modules/blob) in the `module/blob` folder.  
+
 The folder `firmware` contains precompiled images of the current MicroPython firmware including `umqtt` and `blob`.
 
 The following files contain "typical" configuration examples for different robotlings:
