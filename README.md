@@ -10,11 +10,11 @@
 
 ### Release Notes
 
-* 2019-12-29
+* 2019-12-30 (requires MicroPython 1.12.x)
   - [Thermal camera](https://github.com/teuler/robotling/wiki/Sensoren-etc#AMG88XX) support added ([`amg88xx.py`](https://github.com/teuler/robotling/blob/master/code/robotling/driver/amg88xx.py) and [`camera_thermal.py`](https://github.com/teuler/robotling/blob/master/code/robotling/sensors/camera_thermal.py); new behaviour [`lookAtBlob`](https://github.com/teuler/robotling/wiki/Verhalten#SeekBlob) using the thermal camera (see videos [4](https://youtu.be/qpSQO51BuJs), [5](https://youtu.be/tlYXab0FZrY)). _Note that the blob detection (not the camera itself) requires a custom MicroPython [firmware](https://github.com/teuler/robotling/tree/master/code/firmware_esp32) that includes the module [`blob`](https://github.com/teuler/robotling/tree/master/code/modules/blob) (coded in C for speed reasons)._  
   - Configuration file split into fixed ([`hexbug_global.py`](https://github.com/teuler/robotling/blob/master/code/robotling/hexbug_global.py)) and robot-dependent definitions
   - Code adapted to MicroPython release 1.12.x, including hardware I2C bus option added and native code generation added for time critical routines (ESP32 only)
-  - PWM frequencies for servos and DC motors are now defined in `robotling_board.py` to account for the fact that the ESP32 port supports only a single frequency for all PWM pins
+  - PWM frequencies for servos and DC motors are now defined in `robotling_board.py` to account for the fact that the ESP32 port supports only a single frequency for all standard PWM pins. In addition, [`drv8835.py`](https://github.com/teuler/robotling/blob/master/code/robotling/driver/drv8835.py) now uses the RMT feature of the ESP32 for PWM to run the DC motors. This allows using a different frequency than the normal PWM functions.
 
 * 2019-11-15
   - New articel in the German Make: magazine (["Krabbelroboter sendet Telemetrie"](https://www.heise.de/select/make/2019/7/1573927054956141)). 
