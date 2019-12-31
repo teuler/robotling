@@ -1,14 +1,14 @@
 # robotling
 
+"robotling" is a simple circuit board to control small robots. Check out the videos (videos [1](https://youtu.be/wil41YtIeN8), [2](https://youtu.be/cLstXW3RsBA), [3](https://www.youtube.com/watch?v=XF0T9Dlb07M), and with thermal camera, [4](https://youtu.be/qpSQO51BuJs), [5](https://youtu.be/tlYXab0FZrY)) and find the details in the German [wiki](https://github.com/teuler/robotling/wiki). 
+
 <p align="center">
   <img width="720" src="https://github.com/teuler/robotling/blob/master/pictures/IMG_5737a.png"></img>
 </p>
 
-"robotling" is a simple circuit board to control small robots. Check out the videos (videos [1](https://youtu.be/wil41YtIeN8), [2](https://youtu.be/cLstXW3RsBA), [3](https://www.youtube.com/watch?v=XF0T9Dlb07M), and with thermal camera, [4](https://youtu.be/qpSQO51BuJs), [5](https://youtu.be/tlYXab0FZrY)) and find the details in the German [wiki](https://github.com/teuler/robotling/wiki). 
-
 ### Release Notes
 
-<img align="right" width="280" height="376" src="https://github.com/teuler/robotling/blob/master/pictures/pic_board_1_2_a_sm.png"></img>
+<img align="right" width="320" src="https://github.com/teuler/robotling/blob/master/pictures/pic_board_1_2_a_sm.png"></img>
 
 * 2019-12-30 (requires MicroPython 1.12.x)
   - [Thermal camera](https://github.com/teuler/robotling/wiki/Sensoren-etc#AMG88XX) support added ([`amg88xx.py`](https://github.com/teuler/robotling/blob/master/code/robotling/driver/amg88xx.py) and [`camera_thermal.py`](https://github.com/teuler/robotling/blob/master/code/robotling/sensors/camera_thermal.py); new behaviour [`lookAtBlob`](https://github.com/teuler/robotling/wiki/Verhalten#SeekBlob) using the thermal camera (see videos [4](https://youtu.be/qpSQO51BuJs), [5](https://youtu.be/tlYXab0FZrY)). _Note that the blob detection (not the camera itself) requires a custom MicroPython [firmware](https://github.com/teuler/robotling/tree/master/code/firmware_esp32) that includes the module [`blob`](https://github.com/teuler/robotling/tree/master/code/modules/blob) (coded in C for speed reasons)._  
