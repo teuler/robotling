@@ -64,6 +64,20 @@ class Telemetry():
       except:
         print("Error: MQTT brocker {} not responding".format(self._broker))
     print("... done." if self._isReady else "... FAILED")
+    return self._isReady
+
+  def subscribe(self, topic, callBack):
+    """ Subscribe to topic and define call back function
+    """
+    self._client.set_callback(callBack)
+    t = self._rootTopic +topic
+    self._client.subscribe(t)
+    print("Subscribed to `{0}`".format(t))
+
+  def spin(self):
+    """ Needs to be called frequently to check for new messages
+    """
+    self._client.check_msg()
 
   def publishDict(self, t, d):
     """ Publish a dictionary as a message under <standard topic>/<t>
@@ -93,5 +107,9 @@ class Telemetry():
     if self._isReady:
       self._client.disconnect()
       self._isReady = False
+
+  @property
+  def connected(self):
+    return self._isReady
 
 # ----------------------------------------------------------------------------

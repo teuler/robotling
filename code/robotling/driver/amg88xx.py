@@ -37,7 +37,7 @@ import errno
 
 from platform.platform import platform
 if platform.ID == platform.ENV_ESP32_UPY:
-  from platform.huzzah32.register import i2c_bit, i2c_bits
+  from platform.esp32.register import i2c_bit, i2c_bits
 elif platform.ID == platform.ENV_CPY_SAM51:
   from platform.m4ex.circuitpython.register import i2c_bit, i2c_bits
 else:

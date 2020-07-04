@@ -34,12 +34,15 @@
 # THE SOFTWARE.
 # ----------------------------------------------------------------------------
 from platform.platform import platform
-if platform.ID == platform.ENV_ESP32_UPY:
-  import platform.huzzah32.dio as dio
-  import platform.huzzah32.busio as busio
-else:
+if (platform.ID == platform.ENV_ESP32_UPY or
+    platform.ID == platform.ENV_ESP32_TINYPICO):
+  import platform.esp32.dio as dio
+  import platform.esp32.busio as busio
+elif platform.ID == platform.ENV_CPY_SAM51:
   import platform.m4ex.dio as dio
   import platform.m4ex.busio as busio
+else:
+  print("ERROR: No matching hardware libraries in `platform`.")
 
 __version__ = "0.1.0.0"
 CHIP_NAME   = "dotstar"
@@ -241,6 +244,19 @@ class DotStar:
     if auto_write:
       self.show()
     self.auto_write = auto_write
+
+  def getColorFromWheel(self, iWheel):
+    """ Get an RGB color from a wheel-like color representation
+    """
+    iWheel = iWheel % 255
+    if iWheel < 85:
+      return (255 -iWheel*3, 0, iWheel*3)
+    elif iWheel < 170:
+      iWheel -= 85
+      return (0, iWheel*3, 255 -iWheel*3)
+    else:
+      iWheel -= 170
+      return (iWheel*3, 255 -iWheel*3, 0)
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def _ds_writebytes(self, buf):

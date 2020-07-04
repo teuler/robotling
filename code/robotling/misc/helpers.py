@@ -10,7 +10,8 @@
 import array
 
 from platform.platform import platform
-if platform.ID == platform.ENV_ESP32_UPY:
+if (platform.ID == platform.ENV_ESP32_UPY or
+    platform.ID == platform.ENV_ESP32_TINYPICO):
   from time import ticks_us, ticks_diff
 else:
   from platform.m4ex.time import ticks_us, ticks_diff

@@ -18,7 +18,8 @@ class Platform(object):
   ENV_UNKNOWN        = const(0)
   ENV_ESP32_UPY      = const(1)
   ENV_ESP32_UPY_LOBO = const(2)
-  ENV_CPY_SAM51      = const(3)
+  ENV_ESP32_TINYPICO = const(3)
+  ENV_CPY_SAM51      = const(4)
 
   def __init__(self):
     # Determine distribution, board type and GUID
@@ -26,7 +27,10 @@ class Platform(object):
     self.sysInfo    = uname()
 
     if self.sysInfo[0] == "esp32":
-      self._envID = ENV_ESP32_UPY
+      if self.sysInfo[4].upper().find("TINYPICO") >= 0:
+        self._envID = ENV_ESP32_TINYPICO
+      else:
+        self._envID = ENV_ESP32_UPY
     if self.sysInfo[0] == "esp32_LoBo":
       self._envID = ENV_ESP32_UPY_LOBO
     if self.sysInfo[0] == "samd51":
@@ -42,6 +46,10 @@ class Platform(object):
   @property
   def ID(self):
     return self._envID
+
+  @ID.setter
+  def ID(self, value):
+    self._envID = value
 
   @property
   def GUID(self):

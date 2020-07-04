@@ -6,6 +6,7 @@
 # Copyright (c) 2018 Thomas Euler
 # 2018-09-20, v1
 # 2018-11-25, v1.1, now uses dio_*.py to access machine
+# 2020-01-01, v1.2, micropython.native
 # ----------------------------------------------------------------------------
 import array
 from micropython import const
@@ -13,13 +14,13 @@ from misc.helpers import timed_function
 
 from platform.platform import platform
 if platform.ID == platform.ENV_ESP32_UPY:
-  import platform.huzzah32.dio as dio
+  import platform.esp32.dio as dio
 elif platform.ID == platform.ENV_CPY_SAM51:
   import platform.m4ex.dio as dio
 else:
   print("ERROR: No matching hardware libraries in `platform`.")
 
-__version__ = "0.1.1.0"
+__version__ = "0.1.2.0"
 CHIP_NAME   = "mcp3208"
 CHAN_COUNT  = const(8)
 MAX_VALUE   = const(4096)
@@ -62,7 +63,11 @@ class MCP3208(object):
       print("{0}: {1}".format(self.__class__.__name__, Err))
     return -1
 
-  #@timed_function
+  @timed_function
+  def update_timed(self):
+    self.update()
+
+  @micropython.native
   def update(self):
     """ Updates the A/D data for the channels indicated by the property
         `channelMask`. The data can then be accessed as an array via the

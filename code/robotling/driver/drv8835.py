@@ -14,7 +14,7 @@ from misc.helpers import timed_function
 import robotling_board as rb
 from platform.platform import platform
 if platform.ID == platform.ENV_ESP32_UPY:
-  import platform.huzzah32.dio as dio
+  import platform.esp32.dio as dio
 elif platform.ID == platform.ENV_CPY_SAM51:
   import platform.m4ex.dio as dio
 else:

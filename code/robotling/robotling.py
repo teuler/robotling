@@ -4,7 +4,7 @@
 # robotling board.
 #
 # The MIT License (MIT)
-# Copyright (c) 2018-19 Thomas Euler
+# Copyright (c) 2018-2020 Thomas Euler
 # 2018-09-13, v1
 # 2018-11-10, v1.1, Compatible to Boris Lovosevic's MicroPython ESP32 port
 # 2018-12-22, v1.2, Class `Robotling` now more restricted to the board-
@@ -50,11 +50,11 @@ from robotling_board_version import BOARD_VER
 
 from platform.platform import platform
 if platform.ID == platform.ENV_ESP32_UPY:
-  import platform.huzzah32.board as board
-  import platform.huzzah32.dio as dio
-  import platform.huzzah32.aio as aio
-  import platform.huzzah32.busio as busio
-  from platform.huzzah32.neopixel import NeoPixel
+  import platform.esp32.board_huzzah32 as board
+  import platform.esp32.dio as dio
+  import platform.esp32.aio as aio
+  import platform.esp32.busio as busio
+  from platform.esp32.neopixel import NeoPixel
   from machine import deepsleep, lightsleep
   import time
 else:
