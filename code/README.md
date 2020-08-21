@@ -8,8 +8,9 @@ This folder contains python code that runs on a PC, e.g. to communicate with a r
 
 The subfolder `robotling` contains the code that runs on the roboter.  
 
-> IMPORTANT: _The robotling code relies on the drivers in [`robotling_lib`](https://github.com/teuler/robotling_lib), which has to be clones into the `robotling` 
-  folder on the development PC._
+[<img align="left" src="https://github.com/teuler/robotling/blob/master/pictures/warnung.png" alt="Drawing" width="32"/>](https://github.com/teuler/robotling/blob/master/pictures/warnung.png)
+**IMPORTANT: _The robotling code relies on the drivers in [`robotling_lib`](https://github.com/teuler/robotling_lib), which has to be clones into the `robotling` 
+  folder on the development PC._**
 
 The folder `modules/blob` contains the C code for a simple module that takes a camera image (i.e. from the thermal camera), detects "blobs" and returns them as a list. This module has to be built into the Micropython firmware; see [notes](https://github.com/teuler/robotling/tree/master/code/modules/blob) in the `module/blob` folder.  
 
