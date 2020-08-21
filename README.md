@@ -12,6 +12,7 @@
 
 * 2020-08-21 (Refactoring)
   - Since it was difficult to maintain different versions of the robotling code all accessing the same set of driver etc. libraries, these files have now been moved to a separate repository ([`robotling_lib`](https://github.com/teuler/robotling_lib)). 
+  - Wiki updated accordingly.
 
 * 2020-07-04 (Code updates)
   - Simple GUI to show robot status via MQTT (`hexbug.gui.py`) 
