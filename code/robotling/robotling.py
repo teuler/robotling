@@ -43,7 +43,7 @@
 import array
 import random
 from micropython import const
-import robotling_board as rb
+import robotling_lib.robotling_board as rb
 import robotling_lib.driver.mcp3208 as mcp3208
 import robotling_lib.driver.drv8835 as drv8835
 from robotling_lib.misc.helpers import timed_function, TimeTracker

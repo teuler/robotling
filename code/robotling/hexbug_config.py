@@ -4,7 +4,7 @@
 # hexbug_config.py
 # Configuration file for HexBug robotling
 #
-# *** Blue HexBug ***
+# *** Black HexBug ***
 # ---------------------------------------------------------------------
 # Allow to use robotling GUI running on a PC to use the same
 # configuration file as the MicroPython code
@@ -14,7 +14,7 @@ except NameError:
   ModuleNotFoundError = ImportError
 try:
   from micropython import const
-  from robotling_board import *
+  from robotling_lib.robotling_board import *
 except ModuleNotFoundError:
   const = lambda x : x
   DIO0  = None
@@ -33,16 +33,16 @@ PIRO_MAX_ANGLE   = const(25)   # Maximal tilt (i.e. pitch/roll) allowed
 # of approx. angular positions ([°]).
 IR_SCAN_POS      = [-300, 300, 300, -300]
 IR_SCAN_POS_DEG  = [-35, 0, 35, 0]
-IR_SCAN_BIAS_F   = -0.1        # To account for bias in turning motor:
+IR_SCAN_BIAS_F   = 0.05 #-0.12 # To account for bias in turning motor:
                                # .. pos > 0 --> pos*(1+IR_SCAN_BIAS_F)
                                # .. pos < 0 --> pos*(1-IR_SCAN_BIAS_F)
 IR_SCAN_CONE_DEG = const(30)   # Angular width of scan cone (only for GUI)
-IR_SCAN_SENSOR   = const(0)    # 0=GP2Y0A41SK0F (4-30 cm)
+IR_SCAN_SENSOR   = const(1)    # 0=GP2Y0A41SK0F (4-30 cm)
                                # 1=GP2Y0AF15X (1.5-15 cm)
-AI_CH_IR_RANGING = 0           # Analog-In channel(s) for IR distance sensor(s)
-DIST_OBST_CM     = const(7)    # 7  Lower distances are considered obstacles
-DIST_CLIFF_CM    = const(13)   # 13 Farer distances are considered cliffs
-DIST_SMOOTH      = const(0)
+AI_CH_IR_RANGING = [0,1,2]     # Analog-In channel(s) for IR distance sensor(s)
+DIST_OBST_CM     = const(4)    # 5  Lower distances are considered obstacles
+DIST_CLIFF_CM    = const(17)   # 15 Farer distances are considered cliffs
+DIST_SMOOTH      = const(3)
 
 # Light intensity measurements
 AI_CH_LIGHT_R    = const(3)
@@ -50,17 +50,18 @@ AI_CH_LIGHT_L    = const(2)
 
 # Servo settings
 DO_CH_DIST_SERVO = DIO0        # Digital-Out channel for distance sensor servo
-MIN_DIST_SERVO   = const(45)   # Limits of servo that holds the arm with the
-MAX_DIST_SERVO   = const(-45)  # .. IR distance sensor in [°]
-MIN_US_SERVO     = const(1200) # 1322 Minimum timing of servo in [us]
+MIN_DIST_SERVO   = const(30)   # Limits of servo that holds the arm with the
+MAX_DIST_SERVO   = const(-30)  # .. IR distance sensor in [°]
+MIN_US_SERVO     = const(1300) # 1200 Minimum timing of servo in [us]
 MAX_US_SERVO     = const(2350) # Maximum timing of servo in [us]
-SCAN_DIST_SERVO  = const(-25)  # Angle of IR distance sensor arm
+SCAN_DIST_SERVO  = const(-20)  # Angle of IR distance sensor arm
 
 # Period of timer that keeps sensor values updated, the NeoPixel pulsing,
 # and checks for tilt (in [ms])
 TM_PERIOD        = const(50)
 
 # Default motor speeds ..
+
 SPEED_WALK       = const(-75)  # .. for walking forwards
 SPEED_TURN       = const(35)   # .. for turning head when changing direction
 SPEED_SCAN       = const(55)   # .. for turning head when scanning
@@ -83,7 +84,7 @@ SEND_TELEMETRY   = const(1)    # only w/ESP32
 # "Behaviours" and their parameters
 #
 # Look around
-DO_LOOK_AROUND   = const(20)   # =probabilty ([‰]) to activate behaviour
+DO_LOOK_AROUND   = const(0)    # =probabilty ([‰]) to activate behaviour
 
 # Take a nap
 # If activated, the roboter falls asleep from time to time. When this happens,
@@ -98,11 +99,20 @@ NAP_TO_S         = const(20)   # ... in [s]
 # Uses a photodiode pair to home in on a light source. Give pins that connect
 # to the photodiodes in `AI_CH_LIGHT_R` and `AI_CH_LIGHT_L` (above)
 # (obviously, does not work together `DO_WALK_STRAIGHT`)
-DO_FIND_LIGHT    = const(1)    # 1=enabled
+DO_FIND_LIGHT    = const(0)    # 1=enabled
 
 # Follow the heat "blob"
 # ...
-DO_FOLLOW_BLOB   = const(0)    # 1=enabled
+DO_FOLLOW_BLOB   = const(1)    # 1=enabled
+BLOB_ROUNDS      = const(30)   # In behavour, how many rounds to look for blobs
+BLOB_MIN_AREA    = const(5)    # # of pixels
+BLOB_MIN_PROB    = const(50)   # [%]
+BLOB_MIN_XY_OFFS = 0.1
+BLOB_FILTER      = const(0)    # 0=no filer (currenly only 0 valid)
+BLOB_MIN_N_SD    = 0.5
+BLOB_TSF         = const(2)    # Turn speed factor, increase to follow faster
+BLOB_YSTEP       = const(4)    # maximal yaw step
+BLOB_SPIN_MS     = const(50)   # Spin duration when following
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # "Behaviors", not yet fully implemented/tested
@@ -120,7 +130,7 @@ HEAD_ADJUST_THR  = const(5)    # [°]
 # - Display             : "dotstar_feather"
 # - WLAN                : "wlan"
 # - Cameras             : "amg88xx"
-MORE_DEVICES     = ["wlan", "lsm9ds0"]
+MORE_DEVICES     = ["compass_cmps12", "wlan", "amg88xx"]
 
 # <==
 # ---------------------------------------------------------------------

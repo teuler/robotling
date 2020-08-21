@@ -14,7 +14,7 @@ except NameError:
   ModuleNotFoundError = ImportError
 try:
   from micropython import const
-  from robotling_board import *
+  from robotling_lib.robotling_board import *
 except ModuleNotFoundError:
   const = lambda x : x
   DIO0  = None

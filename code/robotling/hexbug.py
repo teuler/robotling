@@ -50,8 +50,8 @@
 # ----------------------------------------------------------------------------
 import array
 import random
-from micropython import const #, mem_info, stack_use
-import robotling_board as rb
+from micropython import const
+import robotling_lib.robotling_board as rb
 import robotling_lib.driver.drv8835 as drv8835
 from robotling import Robotling
 from robotling_board_version import BOARD_VER
