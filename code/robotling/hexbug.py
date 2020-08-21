@@ -45,28 +45,29 @@
 # 2019-12-25, Configuration file split into fixed (`hexbug_global.py`) and
 #             robot-dependent definitions
 #             New behaviour `lookAtBlob` using the thermal camera.
+# 2020-08-21, Refactoring for `robotling_lib`
 #
 # ----------------------------------------------------------------------------
 import array
 import random
 from micropython import const #, mem_info, stack_use
 import robotling_board as rb
-import driver.drv8835 as drv8835
+import robotling_lib.driver.drv8835 as drv8835
 from robotling import Robotling
 from robotling_board_version import BOARD_VER
-from motors.dc_motor import DCMotor
-from motors.servo import Servo
-from misc.helpers import TemporalFilter
+from robotling_lib.motors.dc_motor import DCMotor
+from robotling_lib.motors.servo import Servo
+from robotling_lib.misc.helpers import TemporalFilter
 from hexbug_global import *
 from hexbug_config import *
 
-from platform.platform import platform
+from robotling_lib.platform.platform import platform
 if platform.ID == platform.ENV_ESP32_UPY:
   import time
   if SEND_TELEMETRY:
     mqttd = dict()
 else:
-  import platform.m4ex.time as time
+  import robotling_lib.platform.m4ex.time as time
 
 # ----------------------------------------------------------------------------
 class HexBug(Robotling):
@@ -85,10 +86,10 @@ class HexBug(Robotling):
     except AttributeError:
       if IR_SCAN_SENSOR == 1:
         # New, smaller sensor GP2Y0AF15X (1.5-15 cm)
-        from sensors.sharp_ir_ranging import GP2Y0AF15X as GP2Y
+        from robotling_lib.sensors.sharp_ir_ranging import GP2Y0AF15X as GP2Y
       else:
         # Default to GP2Y0A41SK0F (4-30 cm)
-        from sensors.sharp_ir_ranging import GP2Y0A41SK0F as GP2Y
+        from robotling_lib.sensors.sharp_ir_ranging import GP2Y0A41SK0F as GP2Y
 
       # For compatibility: if `AI_CH_IR_RANGING` is a constant then a
       # single IR sensor is defined, meaning that the robot's head scans
@@ -174,7 +175,7 @@ class HexBug(Robotling):
     self.onHold = False
 
     if SEND_TELEMETRY and platform.ID == platform.ENV_ESP32_UPY:
-      from remote.telemetry import Telemetry
+      from robotling_lib.remote.mqtt_telemetry import Telemetry
       self.onboardLED.on()
       self._t = Telemetry(self.ID)
       self._t.connect()

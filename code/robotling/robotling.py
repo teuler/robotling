@@ -31,6 +31,7 @@
 #                   Define PWM frequencies for servos and DC motors to account
 #                   for the fact the the ESP32 port supports only a single
 #                   frequency for all PWM pins (see `robotling_board.py`)
+# 2020-08-21, v1.9, Refactoring for `robotling_lib`
 #
 # Open issues:
 # - NeoPixels don't yet quite as expected with the LoBo ESP32 MicroPython
@@ -43,29 +44,29 @@ import array
 import random
 from micropython import const
 import robotling_board as rb
-import driver.mcp3208 as mcp3208
-import driver.drv8835 as drv8835
-from misc.helpers import timed_function, TimeTracker
+import robotling_lib.driver.mcp3208 as mcp3208
+import robotling_lib.driver.drv8835 as drv8835
+from robotling_lib.misc.helpers import timed_function, TimeTracker
 from robotling_board_version import BOARD_VER
 
-from platform.platform import platform
+from robotling_lib.platform.platform import platform
 if platform.ID == platform.ENV_ESP32_UPY:
-  import platform.esp32.board_huzzah32 as board
-  import platform.esp32.dio as dio
-  import platform.esp32.aio as aio
-  import platform.esp32.busio as busio
-  from platform.esp32.neopixel import NeoPixel
+  import robotling_lib.platform.esp32.board_huzzah32 as board
+  import robotling_lib.platform.esp32.dio as dio
+  import robotling_lib.platform.esp32.aio as aio
+  import robotling_lib.platform.esp32.busio as busio
+  from robotling_lib.platform.esp32.neopixel import NeoPixel
   from machine import deepsleep, lightsleep
   import time
 else:
   import board
-  import platform.m4ex.dio as dio
-  import platform.m4ex.aio as aio
-  import platform.m4ex.busio as busio
-  from platform.m4ex.neopixel import NeoPixel
-  import platform.m4ex.time as time
+  import robotling_lib.platform.m4ex.dio as dio
+  import robotling_lib.platform.m4ex.aio as aio
+  import robotling_lib.platform.m4ex.busio as busio
+  from robotling_lib.platform.m4ex.neopixel import NeoPixel
+  import robotling_lib.platform.m4ex.time as time
 
-__version__ = "0.1.9.0"
+__version__ = "0.1.9.1"
 
 # ----------------------------------------------------------------------------
 class Robotling():
@@ -173,32 +174,32 @@ class Robotling():
     if "lsm303" in devices:
       # Magnetometer and accelerometer break-out, import drivers and
       # initialize lsm303 and respective compass instance
-      import driver.lsm303 as lsm303
-      from sensors.compass import Compass
+      import robotling_lib.driver.lsm303 as lsm303
+      from robotling_lib.sensors.compass import Compass
       self._LSM303 = lsm303.LSM303(self._I2C)
       self.Compass = Compass(self._LSM303)
 
     if "lsm9ds0" in devices:
       # Magnetometer/accelerometer/gyroscope break-out, import drivers and
       # initialize lsm9ds0 and respective compass instance
-      import driver.lsm9ds0 as lsm9ds0
-      from sensors.compass import Compass
+      import robotling_lib.driver.lsm9ds0 as lsm9ds0
+      from robotling_lib.sensors.compass import Compass
       self._LSM9DS0 = lsm9ds0.LSM9DS0(self._I2C)
       self.Compass = Compass(self._LSM9DS0)
 
     if "compass_cmps12" in devices:
       # Very nice compass module with tilt-compensation built in
-      from sensors.compass_cmps12 import Compass
+      from robotling_lib.sensors.compass_cmps12 import Compass
       self.Compass = Compass(self._I2C)
 
     if "vl6180x" in devices:
       # Time-of-flight distance sensor
-      from sensors.adafruit_tof_ranging import AdafruitVL6180XRangingSensor
+      from robotling_lib.sensors.adafruit_tof_ranging import AdafruitVL6180XRangingSensor
       self._VL6180X = AdafruitVL6180XRangingSensor(i2c=self._I2C)
 
     if "dotstar_feather" in devices:
       # DotStar array is mounted
-      from driver.dotstar import DotStar
+      from robotling_lib.driver.dotstar import DotStar
       self._DS = DotStar(0,0, 6*12, auto_write=False, spi=self._SPI)
       self._iDS = 0
       self._DS[0] = 0
@@ -206,8 +207,8 @@ class Robotling():
 
     if "amg88xx" in devices:
       # IR 8x8 thermal camera (AMG88XX) is mounted
-      import driver.amg88xx as amg88xx
-      from sensors.camera_thermal import Camera
+      import robotling_lib.driver.amg88xx as amg88xx
+      from robotling_lib.sensors.camera_thermal import Camera
       self._AMG88XX = amg88xx.AMG88XX(self._I2C)
       self.Camera = Camera(self._AMG88XX)
 

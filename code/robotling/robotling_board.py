@@ -7,12 +7,14 @@
 # 2018-09-13, v1
 # 2018-12-22, v1.1 - pins for M4 feather express added
 # 2020-01-01, v1.2 - pins for hexapod robotling added
+# 2020-08-21, v1.3 - refactoring for `robotling_lib`
+#
 # ----------------------------------------------------------------------------
 from micropython import const
 from robotling_board_version import BOARD_VER
-from platform.platform import platform
+from robotling_lib.platform.platform import platform
 
-__version__ = "0.1.2.0"
+__version__ = "0.1.3.0"
 
 SPI_FRQ   = const(4000000)
 I2C_FRQ   = const(400000)
@@ -28,7 +30,7 @@ I2C_FRQ   = const(400000)
 # Robotling board connections/pins
 #
 if platform.ID == platform.ENV_ESP32_UPY:
-  import platform.esp32.board_huzzah32 as board
+  import robotling_lib.platform.esp32.board_huzzah32 as board
 
   # SPI -----------------
   SCK        = board.SCK
