@@ -61,7 +61,6 @@ SCAN_DIST_SERVO  = const(-20)  # Angle of IR distance sensor arm
 TM_PERIOD        = const(50)
 
 # Default motor speeds ..
-
 SPEED_WALK       = const(-75)  # .. for walking forwards
 SPEED_TURN       = const(35)   # .. for turning head when changing direction
 SPEED_SCAN       = const(55)   # .. for turning head when scanning
@@ -109,7 +108,7 @@ BLOB_MIN_AREA    = const(5)    # # of pixels
 BLOB_MIN_PROB    = const(50)   # [%]
 BLOB_MIN_XY_OFFS = 0.1
 BLOB_FILTER      = const(0)    # 0=no filer (currenly only 0 valid)
-BLOB_MIN_N_SD    = 0.5
+BLOB_MIN_N_SD    = 1.1         # 0.5 -> 1.5?
 BLOB_TSF         = const(2)    # Turn speed factor, increase to follow faster
 BLOB_YSTEP       = const(4)    # maximal yaw step
 BLOB_SPIN_MS     = const(50)   # Spin duration when following
