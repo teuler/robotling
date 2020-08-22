@@ -102,6 +102,9 @@ STATIC mp_obj_t blob_detect(mp_obj_t img_obj, mp_obj_t dxy_obj,
     mp_obj_t *temp;
     stack_t posList;
 
+    // Initialize arrays
+    memset(blobs, 0, sizeof(blobs));
+
     // Extract the parameters from the micropython input objects
     int dx, dy, n, mode;
     float nsd;
@@ -110,7 +113,7 @@ STATIC mp_obj_t blob_detect(mp_obj_t img_obj, mp_obj_t dxy_obj,
     dy   = mp_obj_get_int(temp[1]);
     mp_obj_get_array_fixed_n(params_obj, 2, &temp);
     mode = mp_obj_get_int(temp[0]);
-    nsd  = mp_obj_get_float(temp[1]);
+    nsd  = (float)mp_obj_get_float(temp[1]);
     n    = dx*dy;
     mp_obj_get_array_fixed_n(img_obj, n, &temp);
     pImg = malloc(n*sizeof(*pImg));
@@ -138,10 +141,11 @@ STATIC mp_obj_t blob_detect(mp_obj_t img_obj, mp_obj_t dxy_obj,
         sum += pImg[i];
     }
     avg = sum /n;
+    sum = 0;
     for(i=0; i<n; i++) {
-        sum += pow(pImg[i] -avg, 2);
+        sum += (float)pow(pImg[i] -avg, 2);
     }
-    sd = sqrt(sum/(n-1));
+    sd = (float)sqrt(sum/(n-1));
 
     // Mark all pixels above a threshold
     nThres = 0;
@@ -157,8 +161,8 @@ STATIC mp_obj_t blob_detect(mp_obj_t img_obj, mp_obj_t dxy_obj,
     stack_create(&posList, n);
     pos_struct_t p0, p1;
     nLeft = nThres;
-    iBlob = 1;
-    while(nLeft > 0) {
+    iBlob = 0;
+    while((nLeft > 0) && (iBlob < MAX_BLOBS)) {
         // As long as unassigned mask pixels are left, continue going
         // the image
         for(y=0; y<dy; y++) {
@@ -201,12 +205,12 @@ STATIC mp_obj_t blob_detect(mp_obj_t img_obj, mp_obj_t dxy_obj,
 
                     // Store blob size and center of gravity position
                     k = 0;
-                    if(iBlob > 1) {
+                    if(iBlob > 0) {
                         while((k < iBlob) && (blobs[k].area > nFound))
                             k++;
                         if(k < iBlob) {
                             for(m=iBlob-1; m>k; m--) {
-                                blobs[m]  = blobs[m-1];
+                                blobs[m] = blobs[m-1];
                             }
                         }
                     }
@@ -224,19 +228,21 @@ STATIC mp_obj_t blob_detect(mp_obj_t img_obj, mp_obj_t dxy_obj,
             }
         }
     }
-    nBlobs = iBlob-1;
+    nBlobs = iBlob;
 
     // Copy blobs into list as function result
     mp_obj_t tempL = mp_obj_new_list(0, NULL);
     for(i=0; i<nBlobs; i++) {
-        mp_obj_t tempT[MAX_BLOB_FIELDS] = {
-            mp_obj_new_int(blobs[i].area),
-            mp_obj_new_int(blobs[i].ID),
-            mp_obj_new_float(blobs[i].prob),
-            mp_obj_new_float(blobs[i].x),
-            mp_obj_new_float(blobs[i].y)
+        if(blobs[i].area > 0) {
+            mp_obj_t tempT[MAX_BLOB_FIELDS] = {
+                mp_obj_new_int(blobs[i].area),
+                mp_obj_new_int(blobs[i].ID),
+                mp_obj_new_float(blobs[i].prob),
+                mp_obj_new_float(blobs[i].x),
+                mp_obj_new_float(blobs[i].y)
+            };
+            mp_obj_list_append(tempL, mp_obj_new_tuple(MAX_BLOB_FIELDS, tempT));
         };
-        mp_obj_list_append(tempL, mp_obj_new_tuple(MAX_BLOB_FIELDS, tempT));
     };
     // Clean up
     free(pImg);
@@ -263,7 +269,7 @@ STATIC const mp_rom_map_elem_t blob_module_globals_table[] = {
 };
 STATIC MP_DEFINE_CONST_DICT(blob_module_globals, blob_module_globals_table);
 
-// Define module object.  
+// Define module object.
 const mp_obj_module_t blob_user_cmodule = {
     .base = { &mp_type_module },
     .globals = (mp_obj_dict_t*)&blob_module_globals,

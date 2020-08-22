@@ -203,7 +203,8 @@ class Widget(object):
 
   def circle(self, xy, r, col, isFilled=False, width=WG_FR_LN_THICK):
     thickn = 0 if isFilled else width
-    pygame.draw.circle(self._surf, col, xy, r, thickn)
+    r1 = r if r > thickn else thickn+1
+    pygame.draw.circle(self._surf, col, xy, r1, thickn)
 
   def arc(self, xy, r, ang1_deg, ang2_deg, col, width=WG_FR_LN_THICK):
     """ Zero degrees to the right
