@@ -216,7 +216,7 @@ class HexBug(Robotling):
     self.currHead = ehpr[1]
 
     if DO_FOLLOW_BLOB and self.Camera:
-      self.Camera.detectBlobs(filter=BLOB_FILTER, nsd=BLOB_MIN_N_SD)
+      self.Camera.detectBlobs(kernel=BLOB_FILTER, nsd=BLOB_MIN_N_SD)
 
     if USE_LOAD_SENSING:
       self._loadData[0] = int(self.walkLoadFilter.mean(self._MCP3208.data[6]))

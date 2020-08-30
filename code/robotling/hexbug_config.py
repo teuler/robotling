@@ -107,7 +107,19 @@ BLOB_ROUNDS      = const(30)   # In behavour, how many rounds to look for blobs
 BLOB_MIN_AREA    = const(5)    # # of pixels
 BLOB_MIN_PROB    = const(50)   # [%]
 BLOB_MIN_XY_OFFS = 0.1
-BLOB_FILTER      = const(0)    # 0=no filer (currenly only 0 valid)
+#
+# Filter to be applied before blob detection (None=no filter)
+# Gaussian smooth
+BLOB_FILTER      = [[0.0625,0.125,0.0625], # Gaussian smooth
+                    [0.125, 0.25, 0.125 ],
+                    [0.0625,0.125,0.0625]]
+'''
+# Sharpen
+BLOB_FILTER      = [[ 0,-1,  0],
+                    [-1, 5, -1],
+                    [ 0,-1,  0]]
+BLOB_FILTER      = None
+'''
 BLOB_MIN_N_SD    = 1.1         # 0.5 -> 1.5?
 BLOB_TSF         = const(2)    # Turn speed factor, increase to follow faster
 BLOB_YSTEP       = const(4)    # maximal yaw step

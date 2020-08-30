@@ -13,7 +13,8 @@ typedef struct stack {
 void stack_create(stack_t *s, int n);
 void stack_kill(stack_t *s);
 int  stack_push(stack_t *s, pos_struct_t *p);
-int  stack_pop(stack_t *s, pos_struct_t *p);
+int  stack_top(stack_t *s, pos_struct_t *p);
+void stack_pop(stack_t *s);
 int  stack_len(stack_t *s);
 
 // ----------------------------------------------------------------------------
