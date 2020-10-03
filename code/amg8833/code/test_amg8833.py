@@ -50,23 +50,23 @@ try:
         print("{0:2.0d}: {1}".format(i, s))
 
       # Kurz warten
-      sleep_ms(100)
+      sleep_ms(200)
 
     # Mittlere Dauer eines `find_blobs`-Aufrufs ausgeben
     print('{:6.3f}ms per call (average)\n'.format(delta/(n*1000)))
 
 
-  print("Find blobs (just Python):")
+  print("Find blobs (just MicroPython):")
   import robotling_lib.misc.blob as blob
-  find_some_blobs(100)
+  find_some_blobs(20)
 
-  print("Find blobs (ulab):")
+  print("Find blobs (MicroPython +ulab):")
   import robotling_lib.misc.blob_ulab as blob
-  find_some_blobs(100)
+  find_some_blobs(20)
 
-  print("Find blobs (C code in ulab):")
+  print("Find blobs (ulab +C code):")
   import robotling_lib.misc.blob_ulab2 as blob
-  find_some_blobs(100)
+  find_some_blobs(20)
 
 finally:
   i2c.deinit()
