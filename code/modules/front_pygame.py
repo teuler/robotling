@@ -5,9 +5,10 @@
 # Simple widget-based GUI that uses the drawing functions of pygame
 #
 # The MIT License (MIT)
-# Copyright (c) 2018-19 Thomas Euler
+# Copyright (c) 2018-20 Thomas Euler
 # 2019-05-01, v1
 # 2019-08-03, `WidgetCamera` added
+# 2020-09-27, small bug fixes
 #
 # ---------------------------------------------------------------------
 import os
@@ -48,17 +49,6 @@ IS_DANGER        = 2
 
 # ---------------------------------------------------------------------
 class Color:
-  """
-  BKG_WIN = (0, 0, 0)
-  BKG     = (25, 13, 13)
-  BKG_PLT = (35, 23, 23)
-  STD     = (250, 150, 100)
-  STD_LOW = (75, 45, 45)
-  HIGH    = (255, 255, 255)
-  H_INACT = (150, 150, 150)
-  S_INACT = (125, 75, 50)
-  B_INACT = (35, 23, 23)
-  """
   BKG_WIN = (0x09, 0x09, 0x09)
   BKG     = (0x03, 0x3E, 0x6B)
   BKG_PLT = (0x03+20, 0x3E+20, 0x6B+20) #(0x25, 0x56, 0x7B)
@@ -88,24 +78,21 @@ class Color:
 # ---------------------------------------------------------------------
 class Window(object):
 
-  def __init__(self, pos, size, title="", logo=""):
+  def __init__(self, pos, size, title="", logo="", font_fact=1.0):
     """ Initiate pygame and generate a window
     """
     pygame.init()
+    self.onEvent = None
+    self._ffact = font_fact
 
     # Get fonts
     w = pygame.display.Info().current_w
-    self._fontSm = pygame.font.SysFont(WG_FONT, WG_FONT_SIZE1)
-    self._fontLg = pygame.font.SysFont(WG_FONT, WG_FONT_SIZE2)
+    self._fontSm = pygame.font.SysFont(WG_FONT, int(WG_FONT_SIZE1 *self._ffact))
+    self._fontLg = pygame.font.SysFont(WG_FONT, int(WG_FONT_SIZE2 *self._ffact))
 
     # Set title and icon, if any
     self.title = title
     pygame.display.set_caption(self.title)
-    """
-    if len(logo) > 0:
-      self.logo = pygame.image.load(logo)
-      pygame.display.set_icon(self.logo)
-    """
 
     # Calculate size in standard widget sizes and create window
     self._size = [0]*2
@@ -148,8 +135,8 @@ class Window(object):
     for event in pygame.event.get():
       if event.type == pygame.QUIT:
         return True
-      elif event.type == pygame.KEYDOWN and event.key == K_ESCAPE:
-        return True
+      elif self.onEvent:
+        self.onEvent(event)
     return False
 
 # =====================================================================
@@ -617,7 +604,7 @@ class WidgetCamera(WidgetStatus):
     self.vals = [d]
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  def draw(self):
+  def draw(self, cmap_name=WG_IRCAM_PALETTE):
     """ Draw widget
     """
     xy1, r1 = super(WidgetCamera, self).draw()
@@ -634,14 +621,15 @@ class WidgetCamera(WidgetStatus):
     if self.isFirst:
       # Retrieve a color palette from matplotlib.pyplot and convert it into
       # a pygame palette
-      cmap = plt.cm.get_cmap(WG_IRCAM_PALETTE)
+      cmap = plt.cm.get_cmap(cmap_name)
       self.pal = []
       for i in range(256):
         rgba = cmap(i/256.)
         self.pal.append((rgba[0]*255, rgba[1]*255, rgba[2]*255))
 
       # ... and a color bar
-      cb = np.array([v for v in range(256)], dtype=np.uint8)
+      cb = np.array([v for v in range(256, 0, -1)], dtype=np.uint8)
+
       self.cbar = pygame.image.frombuffer(cb, (1, 256), "P")
       self.cbar_dxy = (16, int(r1[3]/2))
       self.cbar = pygame.transform.scale(self.cbar, self.cbar_dxy)
@@ -681,15 +669,14 @@ class WidgetCamera(WidgetStatus):
 
       # Draw blobs, if any
       for iB, blob in enumerate(self.vals[0]["blobList"]):
-        if self.rot == 90:
-          xb = int(blob[3]*pdx +ix0)
-          yb = int((idy-blob[4])*pdy +iy0)
+        if self.rot == 0:
+          xb = int((idx -blob[3] -0.5)*pdx +ix0)
+          yb = int((idy -blob[4] -0.5)*pdy +iy0)
         else:
-          xb = int(blob[4]*pdx +ix0)
-          yb = int(blob[3]*pdy +iy0)
+          xb = int(blob[4]*pdx +ix0 -0.5)
+          yb = int(blob[3]*pdy +iy0 -0.5)
 
         rb = int(np.sqrt(blob[0]*pdx/np.pi)) *2
-        #print(blob)
         if iB == 0:
           self.circle((xb, yb), rb, self.colStd, width=1)
         else:
@@ -699,10 +686,10 @@ class WidgetCamera(WidgetStatus):
       self._surf.blit(self.cbar, [ix0 +idx*pdx +WG_DX_SPACE*2, iy0])
       x1 = ix0 +idx*pdx +WG_DX_SPACE*4 +self.cbar_dxy[0]
       y1 = iy0 -self.dyTxtSm//2
-      tx = "{0}".format(imin)
+      tx = "{0}".format(imax)
       self.putText(tx, (x1, y1), self._win.smFont, self.colStd)
       y1 += self.cbar_dxy[1]
-      tx = "{0}".format(imax)
+      tx = "{0}".format(imin)
       self.putText(tx, (x1, y1), self._win.smFont, self.colStd)
       y1 -= self.cbar_dxy[1]//2
       tx = "{0} [{1}]".format(self.vals[0]["label"], self.vals[0]["unit"])
@@ -988,151 +975,4 @@ class WidgetPlot(WidgetStatus):
           self.vals[iVal]["data"] = valArrays[iVal]
     self.draw()
 
-# =====================================================================
-# Graphical Hexapod Widget Class
-#
-# ---------------------------------------------------------------------
-'''
-class WidgetHexapod(Widget):
-
-  def __init__(self, _img, _pos):
-    """ Initialize widget
-    """
-    super(WidgetHexapod, self).__init__(_img, _pos,
-                                       (WG_STATUS_WIDTH, WG_STATUS_HEIGHT*4))
-
-  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  def __calcXY (self, _angle, _r, _px, _py):
-    return ((int(_px +np.cos(_angle) *_r), int(_py +np.sin(_angle) *_r)))
-
-  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  def draw(self, _d):
-    """ Draw widget
-    """
-    xy1, r1 = super(WidgetHexapod, self).draw()
-
-    # Print header, ID and info text
-    #
-    xTx    = xy1[0] +WG_DX_SPACE
-    yTx    = xy1[1] +self.dyTxtSm +WG_DY_SPACE
-    self.putText(self.txtHeader, (xTx, yTx), WG_FONT_SIZE1, self.colStd)
-    yTx    += self.dyTxtLg +WG_DY_SPACE
-    self.putText(self.txtID, (xTx, yTx), WG_FONT_SIZE2, self.colHigh)
-    yTx    += self.dyTxtLg +WG_DY_SPACE
-    self.putTextPair("updated", "{0:3.1f} ms ago"
-                     .format(_d["tIRDistUpdate_ms"]),
-                     (xTx, yTx), WG_FONT_SIZE1, self.colStd, self.colHigh)
-    yTx    += int((self.dyTxtSm +WG_DY_SPACE)*3.5)
-    self.putTextPair("distance", "", (xTx, yTx), WG_FONT_SIZE1,
-                     self.colStd, self.colHigh)
-
-    # Draw depth image (DI)
-    #
-    px      = int(xy1[0] +self.size[0]*2/3 -28)
-    py      = int(xy1[1] +self.dyTxtSm*7)
-    nxHalf  = _d["DI_dx"]/2
-    nyHalf  = _d["DI_dy"]/2
-    dx      = 12
-    dy      = 9
-    for ix in range(_d["DI_dx"]):
-      for iy in range(_d["DI_dy"]):
-        x   = px -(ix -nxHalf)*dx
-        y   = py -(iy -nyHalf)*dy
-        if _d["DI_cm"][iy][ix] < 0:
-          c = (10,10,0)
-        else:
-          rat = _d["IRDIST_MAX_CM"] -_d["DI_cm"][iy][ix]
-          d   = max(0, 255 *rat /_d["IRDIST_MAX_CM"])
-          c   = (d, d, 0)
-        self.rect([x, y, x+dx-2, y+dy-2], c, isFilled=True)
-
-    # Draw compass
-    #
-    dx      = 25
-    dy      = 100
-    px      = int(xy1[0] +self.size[0]*2/3 -22)
-    py      = int(xy1[1] +self.size[1]*2/3 +self.dyTxtSm)
-    dw      = 0.2
-    a       = np.radians(_d["Dir_deg"])
-    pts     = [(px,py)]
-    pts.append(self.__calcXY(a-dw, dx/2, px, py))
-    pts.append(self.__calcXY(a, dx, px, py))
-    pts.append(self.__calcXY(a+dw, dx/2, px, py))
-    self.circle((px,py), dx, self.colStd)
-    self.polygon([pts],self.colStd, isFilled=True)
-    if _d["GGN_tarAngle_deg"] >= 0:
-      a     = np.radians(_d["GGN_tarAngle_deg"])
-      xy    = self.__calcXY(a, dx, px, py)
-      self.circle(xy, 3, Color.HIGH, isFilled=True)
-
-    # Draw IR distance sensors
-    #
-    nDist   = len(_d["IRDist"])
-    da      = np.radians(45 /nDist)
-    a       = -1.5*da -np.radians(90)
-    dw      = 0.1
-    dxTx    = 25
-    xTx     = int(px -dxTx*2.25)
-    nDist   = len(_d["IRDist"])
-    for iDist, Dist_cm in enumerate(_d["IRDist"]):
-      pts   = []
-      pts.append(self.__calcXY(a-dw, dx +3, px, py))
-      pts.append(self.__calcXY(a-dw, dx +3 +Dist_cm, px, py))
-      pts.append(self.__calcXY(a+dw, dx +3 +Dist_cm, px, py))
-      pts.append(self.__calcXY(a+dw, dx +3, px, py))
-      if Dist_cm < _d["IRDist_danger"]:
-        cPoly  = Color.DANGER2
-        cTx    = cPoly
-      elif Dist_cm < _d["IRDist_warn"]:
-        cPoly  = Color.WARN2
-        cTx    = cPoly
-      else:
-        cPoly  = Color.STD
-        cTx    = Color.HIGH
-      self.polygon([pts], cPoly, isFilled=True)
-      sTxt     = "{0} {1}".format(Dist_cm, "" if iDist < nDist-1 else "cm")
-      self.putText(sTxt, (xTx, yTx), WG_FONT_SIZE1, cTx)
-      self.polygon([pts], Color.BKG, isFilled=False)
-      a    += da
-      xTx  += dxTx
-
-    # Draw "legs"
-    #
-    da      = np.radians(40)
-    a       = np.radians(-40)
-    dw      = 0.15
-    lMax    = 125.0
-    for leg in range(6):
-      if leg == 3:
-        a   = np.radians(140)
-      pts   = []
-      pts.append(self.__calcXY(a-dw,   dx+ 4, px, py))
-      pts.append(self.__calcXY(a-dw/2, dx+24, px, py))
-      pts.append(self.__calcXY(a+dw/2, dx+24, px, py))
-      pts.append(self.__calcXY(a+dw,   dx+ 4, px, py))
-      l1    = (lMax -_d["LoadSens"][leg])/lMax*128.0
-      l2    = _d["LoadSens"][leg]/lMax*255.0
-      cPoly = (0, l1, l2)
-      self.polygon([pts], cPoly, isFilled=True)
-      l1    = (lMax -_d["LoadSens"][leg+6])/lMax*128.0
-      l2    = _d["LoadSens"][leg+6]/lMax*255.0
-      cPoly = (0, l1, l2)
-      xy    = self.__calcXY(a, dx+32, px, py)
-      self.circle(xy, 8, cPoly, isFilled=True)
-      a    += da
-
-    # More text info
-    #
-    xTx     = xy1[0] +WG_DX_SPACE
-    yTx    += (self.dyTxtSm +WG_DY_SPACE) *15
-    self.putTextPair("bodyRot", "x={0}, y={1}"
-                     .format(_d["GGN_bodyRotX"], _d["GGN_bodyRotY"]),
-                     (xTx, yTx), WG_FONT_SIZE1, self.colStd,self.colHigh)
-
-  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  def update(self, _d):
-    """ Update and redraw
-    """
-    self.draw(_d)
-'''
 # ---------------------------------------------------------------------

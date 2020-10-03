@@ -33,18 +33,14 @@ script_initialize_amg8833 = [
   'i2c = busio.I2CBus(400000, 22, 23)',
   'amg = AMG88XX(i2c)',
 ]
-
 script_get_image = [
   'img_raw = list(amg.pixels_64x1)',
   'print(img_raw)'
 ]
-
-script_import_blob = [
-  'import robotling_lib.misc.blob_ulab2 as blob'
+script_get_blob_list = [
+  'blob_list = blob.find_blobs_timed(img_raw, (8, 8))'
 ]
-
-script_get_blobs = [
-  'blob_list = blob.find_blobs_timed(img_raw, (8, 8))',
+script_print_blob_list = [
   'print(blob_list)'
 ]
 
@@ -55,15 +51,17 @@ class FrontEndGUI(object):
     """ Initialize GUI window
     """
     # Create window
-    self.Win = front.Window(WIN_POS, WIN_SIZE, WIN_NAME, font_fact=1.6)
+    self.Win = front.Window(WIN_POS, WIN_SIZE, WIN_NAME, font_fact=1.0)
     self.Win.onEvent = self.onEventCallback
 
     # PyBoard instance
     self._pb = pyb
+    self._t_ms = 0
+    self._info = "MPy"
 
     # Define IR camera widget
     self.CameraIR = front.WidgetCamera(self.Win, (0 , 0), 0)
-    self.CameraIR.setLabels("Sensors", "8x8 thermal camera")
+    self.CameraIR.setLabels("AMG8833 8x8 thermal camera", "n/a")
     self.CameraIR.setValProperties("T", "°C", RANGE_T_C, PIX_SIZE, False)
     self.CameraIR.draw(cmap_name="inferno")
     self._doSmooth = False
@@ -73,6 +71,15 @@ class FrontEndGUI(object):
       if event.key == 115: # "s"
         self._doSmooth = not self._doSmooth
         self.CameraIR.vals[0]["smooth"] = self._doSmooth
+      elif event.key == 49: # "1"
+        _ = run_on_board(pb, ["import robotling_lib.misc.blob as blob"])
+        self._info = "MPy"
+      elif event.key == 50: # "2"
+        _ = run_on_board(pb, ["import robotling_lib.misc.blob_ulab as blob"])
+        self._info = "MPy +ulab"
+      elif event.key == 51: # "3"
+        _ = run_on_board(pb, ["import robotling_lib.misc.blob_ulab2 as blob"])
+        self._info = "ulab +C code"
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def run(self):
@@ -92,7 +99,10 @@ class FrontEndGUI(object):
     """ Update GUI
     """
     # Thermal camera image
-    data, blobs = get_image_blobs(self._pb)
+    data, blobs, t_ms = get_image_blobs(self._pb)
+    self._t_ms = (self._t_ms +t_ms) /2
+    s = "{0} blobs, {1:6.3f} ms/call ({2})".format(len(blobs), self._t_ms, self._info)
+    self.CameraIR.setLabels("AMG8833 8x8 thermal camera", s)
     self.CameraIR.update(data, (8,8), blobs)
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -115,21 +125,27 @@ def run_on_board(pb, code, wait_s=0, no_print=False):
   """
   for ln in code:
     res = pb.exec(ln)
-    if len(res) > 0 and not no_print:
+    if len(res) > 0:
       res = res[:-2].decode()
-      print(res)
+      if not no_print:
+        print(res)
   if wait_s > 0:
     time.sleep(wait_s)
   return res
 
 def get_image_blobs(pb):
   """ Get an image from the sensor connected to the MicroPython board,
-      find blobs and return the image as well as a list of blobs
+      find blobs and return the image, a list of blobs, and the time it
+      took to find the blobs (in [ms])
   """
   raw = json.loads(run_on_board(pb, script_get_image, no_print=True))
   img = np.flip(np.transpose(np.reshape(raw, (8, 8))))
-  blobs = json.loads(run_on_board(pb, script_get_blobs, no_print=False))
-  return img, blobs
+  time_str = run_on_board(pb, script_get_blob_list, no_print=True)
+  t_ms = float(time_str.split("= ")[1].split("m")[0])
+  blobs_str = run_on_board(pb, script_print_blob_list, no_print=True)
+  blobs_str = blobs_str.replace("nan", "0")
+  blobs = json.loads(blobs_str.replace('(', '[').replace(')', ']'))
+  return img, blobs, t_ms
 
 # ---------------------------------------------------------------------
 if __name__ == '__main__':
@@ -149,7 +165,7 @@ if __name__ == '__main__':
   # Connect to AMG8833 sensor via the board
   print("Searching for sensor ...")
   _ = run_on_board(pb, script_initialize_amg8833, wait_s=0.4)
-  _ = run_on_board(pb, script_import_blob)
+  _ = run_on_board(pb, ["import robotling_lib.misc.blob as blob"])
 
   # Initialize GUI
   gui = FrontEndGUI(pb)
