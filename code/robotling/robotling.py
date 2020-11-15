@@ -32,6 +32,7 @@
 #                   for the fact the the ESP32 port supports only a single
 #                   frequency for all PWM pins (see `robotling_board.py`)
 # 2020-08-21, v1.9, Refactoring for `robotling_lib`
+# 2020-11-15, v1.9, Further refactoring (platform based on language not board)
 #
 # Open issues:
 # - NeoPixels don't yet quite as expected with the LoBo ESP32 MicroPython
@@ -50,7 +51,7 @@ from robotling_lib.misc.helpers import timed_function, TimeTracker
 from robotling_board_version import BOARD_VER
 
 from robotling_lib.platform.platform import platform
-if platform.ID == platform.ENV_ESP32_UPY:
+if platform.languageID == platform.LNG_MICROPYTHON:
   import robotling_lib.platform.esp32.board_huzzah32 as board
   import robotling_lib.platform.esp32.dio as dio
   import robotling_lib.platform.esp32.aio as aio
@@ -60,13 +61,13 @@ if platform.ID == platform.ENV_ESP32_UPY:
   import time
 else:
   import board
-  import robotling_lib.platform.m4ex.dio as dio
-  import robotling_lib.platform.m4ex.aio as aio
-  import robotling_lib.platform.m4ex.busio as busio
-  from robotling_lib.platform.m4ex.neopixel import NeoPixel
-  import robotling_lib.platform.m4ex.time as time
+  import robotling_lib.platform.circuitpython.dio as dio
+  import robotling_lib.platform.circuitpython.aio as aio
+  import robotling_lib.platform.circuitpython.busio as busio
+  from robotling_lib.platform.circuitpython.neopixel import NeoPixel
+  import robotling_lib.platform.circuitpython.time as time
 
-__version__ = "0.1.9.1"
+__version__ = "0.1.9.2"
 
 # ----------------------------------------------------------------------------
 class Robotling():
@@ -174,16 +175,16 @@ class Robotling():
     if "lsm303" in devices:
       # Magnetometer and accelerometer break-out, import drivers and
       # initialize lsm303 and respective compass instance
-      import robotling_lib.driver.lsm303 as lsm303
       from robotling_lib.sensors.compass import Compass
+      import robotling_lib.driver.lsm303 as lsm303
       self._LSM303 = lsm303.LSM303(self._I2C)
       self.Compass = Compass(self._LSM303)
 
     if "lsm9ds0" in devices:
       # Magnetometer/accelerometer/gyroscope break-out, import drivers and
       # initialize lsm9ds0 and respective compass instance
-      import robotling_lib.driver.lsm9ds0 as lsm9ds0
       from robotling_lib.sensors.compass import Compass
+      import robotling_lib.driver.lsm9ds0 as lsm9ds0
       self._LSM9DS0 = lsm9ds0.LSM9DS0(self._I2C)
       self.Compass = Compass(self._LSM9DS0)
 

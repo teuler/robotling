@@ -46,6 +46,7 @@
 #             robot-dependent definitions
 #             New behaviour `lookAtBlob` using the thermal camera.
 # 2020-08-21, Refactoring for `robotling_lib`
+# 2020-11-15, Further refactoring (platform based on language not board)
 #
 # ----------------------------------------------------------------------------
 import array
@@ -62,7 +63,7 @@ from hexbug_global import *
 from hexbug_config import *
 
 from robotling_lib.platform.platform import platform
-if platform.ID == platform.ENV_ESP32_UPY:
+if platform.languageID == platform.LNG_MICROPYTHON:
   import time
   if SEND_TELEMETRY:
     mqttd = dict()
