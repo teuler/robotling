@@ -10,6 +10,8 @@
 
 <img align="right" width="320" src="https://github.com/teuler/robotling/blob/master/pictures/pic_board_1_2_a_sm.png"></img>
 
+* 2021-04-05 
+  - Link to new Make: article added. 
 * 2020-08-30 (Blob detection revisited)
   - [Three versions](https://github.com/teuler/robotling/wiki/Verhalten#SeekBlob) of the blob detection and image filter code, demonstrating differences in speed between a pure MicroPython version and those that use [`ulab`](https://micropython-ulab.readthedocs.io/en/latest/ulab.html) or even user-written C functions added to `ulab`.
 * 2020-08-21 (Refactoring)
