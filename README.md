@@ -12,6 +12,7 @@
 
 * 2021-04-18
   - [Instructions](https://github.com/teuler/robotling/wiki/Adding-native-modules-to-MicroPython-(ESP32)) for building MicroPython (release 1.14) w/`ulab` and `umqtt` updated. 
+  - new pre-built ESP32 [firmware](https://github.com/teuler/robotling/tree/master/code/firmware_esp32) based on MicroPython v1.14 (w/`ulab`)
 * 2021-04-05 
   - Link to new Make: article added. 
 * 2020-08-30 (Blob detection revisited)
