@@ -33,6 +33,7 @@
 #                   frequency for all PWM pins (see `robotling_board.py`)
 # 2020-08-21, v1.9, Refactoring for `robotling_lib`
 # 2020-11-15, v1.9, Further refactoring (platform based on language not board)
+# 2021-04-18, v1.9, Small bug fixes, works w/ MicroPython v1.14
 #
 # Open issues:
 # - NeoPixels don't yet quite as expected with the LoBo ESP32 MicroPython
@@ -67,7 +68,7 @@ else:
   from robotling_lib.platform.circuitpython.neopixel import NeoPixel
   import robotling_lib.platform.circuitpython.time as time
 
-__version__ = "0.1.9.2"
+__version__ = "0.1.9.3"
 
 # ----------------------------------------------------------------------------
 class Robotling():
@@ -126,9 +127,9 @@ class Robotling():
     """ Additional onboard components can be listed in `devices` and, if known,
         will be initialized
     """
-    print("Robotling (board v{0:.2f}, software v{1}) w/ MicroPython {2} ({3})"
-          .format(BOARD_VER/100, __version__, platform.sysInfo[2],
-                  platform.sysInfo[0]))
+    si = platform.sysInfo
+    print("Robotling (board v{0:.2f}, software v{1}) w/{2} {3} ({4})"
+          .format(BOARD_VER/100, __version__, platform.language, si[2], si[0]))
     print("Initializing ...")
 
     # Initialize some variables
@@ -161,7 +162,7 @@ class Robotling():
     print("[{0:>12}] {1:35}".format("Neopixel", "ready"))
 
     # Get hardware I2C bus (#0)
-    self._I2C = busio.I2CBus(rb.I2C_FRQ, rb.SCL, rb.SDA, code=0)
+    self._I2C = busio.I2CBus(freq=rb.I2C_FRQ, scl=rb.SCL, sda=rb.SDA, scan=True)
 
     # Reset potential "device" objects
     self._VL6180X = None
@@ -368,7 +369,7 @@ class Robotling():
   def Battery_V(self):
     """ Battery voltage in [V]
     """
-    return self._adc_battery.value *rb.BAT_N_PER_V
+    return rb.battery_convert(self._adc_battery.value)
 
   @property
   def ID(self):
