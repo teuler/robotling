@@ -53,6 +53,12 @@ def main():
             r.lookAround()
             continue
 
+          # Sometines sleep
+          if random.randint(1,1000) <= DO_TAKE_NAPS:
+            print("SLEEP")
+            r.sleepLightly()
+            continue
+
           # If blob following behaviour is activated, check for blobs every
           # 10th round
           if DO_FOLLOW_BLOB and round % 20 == 0:

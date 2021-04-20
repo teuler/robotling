@@ -47,6 +47,7 @@
 #             New behaviour `lookAtBlob` using the thermal camera.
 # 2020-08-21, Refactoring for `robotling_lib`
 # 2020-11-15, Further refactoring (platform based on language not board)
+# 2021-04-21, Now uses `RobotlingBase`
 #
 # ----------------------------------------------------------------------------
 import array
@@ -251,7 +252,7 @@ class HexBug(Robotling):
 
     # Change NeoPixel according to state
     i = self.state *3
-    self.startPulseNeoPixel(STATE_COLORS[i:i+3])
+    self.startPulsePixel(STATE_COLORS[i:i+3])
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def onLoopStart(self):
@@ -479,7 +480,7 @@ class HexBug(Robotling):
 
     # Dim the NeoPixel
     for i in range(10, -1, -1):
-      self.dimNeoPixel(i/10.0)
+      self.dimPixel(i/10.0)
       self.spin_ms(250)
 
     # "Drop" sensor arm
@@ -488,9 +489,9 @@ class HexBug(Robotling):
       self.spin_ms(10)
 
     # Flash NeoPixel ...
-    self.dimNeoPixel(1.0)
+    self.dimPixel(1.0)
     self.spin_ms(100)
-    self.dimNeoPixel(0.0)
+    self.dimPixel(0.0)
 
     # ... and enter sleep mode for a random number of seconds
     self.sleepLightly(random.randint(NAP_FROM_S, NAP_TO_S))
@@ -502,7 +503,7 @@ class HexBug(Robotling):
 
     # Bring up NeoPixel again
     for i in range(0, 11):
-      self.dimNeoPixel(i/10.0)
+      self.dimPixel(i/10.0)
       self.spin_ms(250)
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
