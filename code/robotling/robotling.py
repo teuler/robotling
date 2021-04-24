@@ -43,30 +43,27 @@
 #   the prototype board. In any case, the compass does not yet work.
 #   With the CMPS12 module, the compass works just fine.
 # ----------------------------------------------------------------------------
+import gc
 import array
-import random
-from micropython import const
 import robotling_lib.robotling_board as rb
-import robotling_lib.driver.mcp3208 as mcp3208
 import robotling_lib.driver.drv8835 as drv8835
-from robotling_lib.misc.helpers import timed_function, TimeTracker
 from robotling_board_version import BOARD_VER
 from robotling_lib.robotling_base import RobotlingBase
 
 from robotling_lib.platform.platform import platform
 if platform.languageID == platform.LNG_MICROPYTHON:
   import robotling_lib.platform.esp32.board_huzzah32 as board
-  import robotling_lib.platform.esp32.dio as dio
-  import robotling_lib.platform.esp32.aio as aio
-  import robotling_lib.platform.esp32.busio as busio
+  from robotling_lib.platform.esp32.dio import DigitalOut
+  from robotling_lib.platform.esp32.aio import AnalogIn
+  from robotling_lib.platform.esp32.busio import  I2CBus
   from robotling_lib.platform.esp32.neopixel import NeoPixel
   from machine import deepsleep, lightsleep
   import time
 elif platform.languageID == platform.LNG_CIRCUITPYTHON:
   import board
-  import robotling_lib.platform.circuitpython.dio as dio
-  import robotling_lib.platform.circuitpython.aio as aio
-  import robotling_lib.platform.circuitpython.busio as busio
+  from robotling_lib.platform.circuitpython.dio import DigitalOut
+  from robotling_lib.platform.circuitpython.aio import AnalogIn
+  from robotling_lib.platform.circuitpython.busio import I2CBus
   from robotling_lib.platform.circuitpython.neopixel import NeoPixel
   import robotling_lib.platform.circuitpython.time as time
 else:
@@ -80,7 +77,6 @@ class Robotling(RobotlingBase):
 
   Objects:
   -------
-  - onboardLED     : on(), off()
   - power5V        : on(), off()
   - Compass        : see sensors.compass*.py
 
@@ -120,15 +116,10 @@ class Robotling(RobotlingBase):
     super().__init__(neoPixel=True, MCP3208=True)
     print("[{0:>12}] {1:35}".format("GUID", self.ID))
 
-    # Initialize some variables
-    self._devices = devices
-
     # Initialize on-board (feather) hardware
-    self.onboardLED = dio.DigitalOut(rb.RED_LED, value=False)
-    self._adc_battery = aio.AnalogIn(rb.ADC_BAT)
-
+    self._adc_battery = AnalogIn(rb.ADC_BAT)
     if BOARD_VER >= 120:
-      self.power5V = dio.DigitalOut(rb.ENAB_5V, value=True)
+      self.power5V = DigitalOut(rb.ENAB_5V, value=True)
 
     # Initialize motor driver
     self._motorDriver = drv8835.DRV8835(drv8835.MODE_PH_EN, rb.MOTOR_FRQ,
@@ -136,9 +127,11 @@ class Robotling(RobotlingBase):
                                         rb.B_ENAB, rb.B_PHASE)
 
     # Get hardware I2C bus (#0)
-    self._I2C = busio.I2CBus(freq=rb.I2C_FRQ, scl=rb.SCL, sda=rb.SDA, scan=True)
+    self._I2C = I2CBus(freq=rb.I2C_FRQ, scl=rb.SCL, sda=rb.SDA, scan=True)
 
     # Reset potential "device" objects
+    gc.collect()
+    self._devices = devices
     self._VL6180X = None
     self._DS = None
     self._AMG88XX = None
@@ -170,7 +163,8 @@ class Robotling(RobotlingBase):
 
     if "vl6180x" in devices:
       # Time-of-flight distance sensor
-      from robotling_lib.sensors.adafruit_tof_ranging import AdafruitVL6180XRangingSensor
+      from robotling_lib.sensors.adafruit_tof_ranging import \
+        AdafruitVL6180XRangingSensor
       self._VL6180X = AdafruitVL6180XRangingSensor(i2c=self._I2C)
 
     if "dotstar_feather" in devices:
