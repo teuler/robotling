@@ -16,6 +16,8 @@
   - Small bug fixes, now compatible w/ MicroPython v1.14 and "vanilla" v1.15 ([esp32-20210420-unstable-v1.15.bin](https://micropython.org/resources/firmware/esp32-20210420-unstable-v1.15.bin)).
   - Now uses `RobotlingBase` (from [`robotling_lib`](https://github.com/teuler/robotling_lib)), so better separate standard hardware and additional hardware defined in `devices` (in [hexbug_config.py](https://github.com/teuler/robotling/blob/master/code/robotling/hexbug_config.py)). 
   - As [`robotling_lib`](https://github.com/teuler/robotling_lib) now includes `simple.py` and `robust.py` from [micropython-lib](https://github.com/micropython/micropython-lib) as fall-back, MQTT can now be used with the standard MicroPython firmware, which does not inlcude `umqtt`.
+  - Added [instructions](https://github.com/teuler/robotling/wiki/Adding-native-modules-to-MicroPython-(ESP32)#-building-micropython-v115-and-higher-with-ulab-included) how to build the ESP32 firmware for MicroPython 1.15 with `ulab` included. 
+
 * 2021-04-05 
   - Link to new Make: article added. 
 * 2020-08-30 (Blob detection revisited)
