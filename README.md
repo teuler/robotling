@@ -10,6 +10,9 @@
 
 <img align="right" width="320" src="https://github.com/teuler/robotling/blob/master/pictures/pic_board_1_2_a_sm.png"></img>
 
+* 2021-05-01
+  - Some refactoring: Configuration parameters now clearly marked as such (`cfg.xxx`)
+
 * 2021-04-24
   - [Instructions](https://github.com/teuler/robotling/wiki/Adding-native-modules-to-MicroPython-(ESP32)) for building MicroPython (release 1.14) w/`ulab` and `umqtt` updated. 
   - New pre-built ESP32 [firmware](https://github.com/teuler/robotling/tree/master/code/firmware_esp32) based on MicroPython v1.14 (w/`ulab` and `umqtt`)
