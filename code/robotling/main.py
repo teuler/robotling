@@ -18,6 +18,8 @@
 # 2019-07-24, added "memory" to turn direction (experimental)
 # 2019-08-19, in case of an uncaught exception, it tries to send a last
 #             MQTT message containing the traceback to the broker
+# 2021-04-29, Some refactoring; configuration parameters now clearly marked
+#             as such (`cfg.xxx`)
 #
 # ----------------------------------------------------------------------------
 from hexbug import *
@@ -25,10 +27,10 @@ from hexbug import *
 # ----------------------------------------------------------------------------
 def main():
   # Setup the robot's spin function
-  r.spin_ms(period_ms=TM_PERIOD, callback=r.housekeeper)
+  r.spin_ms(period_ms=cfg.TM_PERIOD, callback=r.housekeeper)
 
   # Angle the IR sensor towards floor in front
-  r.ServoRangingSensor.angle = SCAN_DIST_SERVO
+  r.ServoRangingSensor.angle = cfg.SCAN_DIST_SERVO
   r.spin_ms(100)
 
   # Loop ...
@@ -49,20 +51,19 @@ def main():
             continue
 
           # Sometines just look around
-          if random.randint(1,1000) <= DO_LOOK_AROUND:
+          if random.randint(1,1000) <= cfg.DO_LOOK_AROUND:
             r.lookAround()
             continue
 
           # Sometines sleep
-          if random.randint(1,1000) <= DO_TAKE_NAPS:
-            print("SLEEP")
+          if random.randint(1,1000) <= cfg.DO_TAKE_NAPS:
             r.sleepLightly()
             continue
 
           # If blob following behaviour is activated, check for blobs every
           # 10th round
-          if DO_FOLLOW_BLOB and round % 20 == 0:
-            r.lookAtBlob(BLOB_MIN_AREA, BLOB_MIN_PROB)
+          if cfg.DO_FOLLOW_BLOB and round % 20 == 0:
+            r.lookAtBlob(cfg.BLOB_MIN_AREA, cfg.BLOB_MIN_PROB)
             continue
 
           # Check if obstacle or cliff
@@ -72,7 +73,7 @@ def main():
           if r.onTrouble == 0:
             # No reason to stop, therefore walk
             r.state = STATE_WALKING
-            r.MotorWalk.speed = SPEED_WALK
+            r.MotorWalk.speed = cfg.SPEED_WALK
             if not r.turnStats == 0:
               # Slowly "forget" the unsuccessful turn direction
               r.turnStats += MEM_DEC if r.turnStats < 0 else -MEM_DEC
@@ -85,8 +86,8 @@ def main():
             r.MotorWalk.speed = 0
             r.spin_ms(50)
             lastTurnDir = r._nextTurnDir(lastTurnDir)
-            r.MotorTurn.speed = SPEED_TURN *lastTurnDir
-            r.spin_ms(SPEED_TURN_DELAY)
+            r.MotorTurn.speed = cfg.SPEED_TURN *lastTurnDir
+            r.spin_ms(cfg.SPEED_TURN_DELAY)
             r.MotorTurn.speed = 0
 
           else:
@@ -96,17 +97,17 @@ def main():
             r.MotorWalk.speed = 0
             #r.spin_ms(500)
             r.spin_ms(100)
-            r.MotorWalk.speed = -SPEED_WALK
-            r.spin_ms(SPEED_BACK_DELAY)
+            r.MotorWalk.speed = -cfg.SPEED_WALK
+            r.spin_ms(cfg.SPEED_BACK_DELAY)
             r.MotorWalk.speed = 0
             lastTurnDir = r._nextTurnDir(lastTurnDir)
-            r.MotorTurn.speed = SPEED_TURN *lastTurnDir
-            r.spin_ms(SPEED_TURN_DELAY*2)
+            r.MotorTurn.speed = cfg.SPEED_TURN *lastTurnDir
+            r.spin_ms(cfg.SPEED_TURN_DELAY*2)
             r.MotorTurn.speed = 0
 
           # If compass is used and a heading was chosen (because of cliff or
           # obstacle), save this as new target heading
-          if r.onTrouble != 0 and DO_WALK_STRAIGHT:
+          if r.onTrouble != 0 and cfg.DO_WALK_STRAIGHT:
             r._targetHead = r.Compass.getHeading()
 
         finally:
@@ -125,7 +126,7 @@ def main():
 
 # ----------------------------------------------------------------------------
 # Create instance of HexBug, derived from the Robotling class
-r = HexBug(MORE_DEVICES)
+r = HexBug(cfg.MORE_DEVICES)
 
 # Call main
 if __name__ == "__main__":
@@ -136,7 +137,7 @@ if __name__ == "__main__":
     # exception's traceback (`sys.print_exception` requires a file-like
     # object). This traceback string is then converted into a dictionary
     # to be sent as an MQTT message (if telemetry is activate)
-    if SEND_TELEMETRY and r._t._isReady:
+    if cfg.SEND_TELEMETRY and r._t._isReady:
       import sys, uio
       sIO = uio.StringIO()
       sys.print_exception(e, sIO)

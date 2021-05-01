@@ -19,6 +19,7 @@ except ModuleNotFoundError:
   const = lambda x : x
   DIO0  = None
 
+# pylint: disable=bad-whitespace
 # ---------------------------------------------------------------------
 # USER SECTION
 # ==>
@@ -120,7 +121,8 @@ HEAD_ADJUST_THR  = const(5)    # [°]
 # - Display             : "dotstar_feather"
 # - WLAN                : "wlan"
 # - Cameras             : "amg88xx"
-MORE_DEVICES     = ["lsm9ds0", "wlan"]
+MORE_DEVICES     = ["wlan", "lsm9ds0"]
 
 # <==
+# pylint: enable=bad-whitespace
 # ---------------------------------------------------------------------

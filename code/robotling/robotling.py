@@ -35,6 +35,7 @@
 # 2020-11-15, v1.9, Further refactoring (platform based on language not board)
 # 2021-04-18, v1.9, Small bug fixes, works w/ MicroPython v1.14
 # 2021-04-21, v1.9, Now uses `RobotlingBase`
+# 2021-04-29, v1.9, Some refactoring
 #
 # Open issues:
 # - NeoPixels don't yet quite as expected with the LoBo ESP32 MicroPython
@@ -50,8 +51,8 @@ import robotling_lib.driver.drv8835 as drv8835
 from robotling_board_version import BOARD_VER
 from robotling_lib.robotling_base import RobotlingBase
 
-from robotling_lib.platform.platform import platform
-if platform.languageID == platform.LNG_MICROPYTHON:
+from robotling_lib.platform.platform import platform as pf
+if pf.languageID == pf.LNG_MICROPYTHON:
   import robotling_lib.platform.esp32.board_huzzah32 as board
   from robotling_lib.platform.esp32.dio import DigitalOut
   from robotling_lib.platform.esp32.aio import AnalogIn
@@ -59,7 +60,7 @@ if platform.languageID == platform.LNG_MICROPYTHON:
   from robotling_lib.platform.esp32.neopixel import NeoPixel
   from machine import deepsleep, lightsleep
   import time
-elif platform.languageID == platform.LNG_CIRCUITPYTHON:
+elif pf.languageID == pf.LNG_CIRCUITPYTHON:
   import board
   from robotling_lib.platform.circuitpython.dio import DigitalOut
   from robotling_lib.platform.circuitpython.aio import AnalogIn
@@ -107,9 +108,9 @@ class Robotling(RobotlingBase):
     """ Additional onboard components can be listed in `devices` and, if known,
         will be initialized
     """
-    si = platform.sysInfo
+    si = pf.sysInfo
     print("Robotling (board v{0:.2f}, software v{1}) w/{2} {3} ({4})"
-          .format(BOARD_VER/100, __version__, platform.language, si[2], si[0]))
+          .format(BOARD_VER/100, __version__, pf.language, si[2], si[0]))
     print("Initializing ...")
 
     # Initialize base object
@@ -122,9 +123,10 @@ class Robotling(RobotlingBase):
       self.power5V = DigitalOut(rb.ENAB_5V, value=True)
 
     # Initialize motor driver
-    self._motorDriver = drv8835.DRV8835(drv8835.MODE_PH_EN, rb.MOTOR_FRQ,
-                                        rb.A_ENAB, rb.A_PHASE,
-                                        rb.B_ENAB, rb.B_PHASE)
+    self._motorDriver = drv8835.DRV8835(
+        drv8835.MODE_PH_EN, rb.MOTOR_FRQ,
+        rb.A_ENAB, rb.A_PHASE, rb.B_ENAB, rb.B_PHASE
+      )
 
     # Get hardware I2C bus (#0)
     self._I2C = I2CBus(freq=rb.I2C_FRQ, scl=rb.SCL, sda=rb.SDA, scan=True)
@@ -143,23 +145,23 @@ class Robotling(RobotlingBase):
     if "lsm303" in devices:
       # Magnetometer and accelerometer break-out, import drivers and
       # initialize lsm303 and respective compass instance
-      from robotling_lib.sensors.compass import Compass
-      import robotling_lib.driver.lsm303 as lsm303
+      from robotling_lib.sensors import compass
+      from robotling_lib.driver import lsm303
       self._LSM303 = lsm303.LSM303(self._I2C)
-      self.Compass = Compass(self._LSM303)
+      self.Compass = compass.Compass(self._LSM303)
 
     if "lsm9ds0" in devices:
       # Magnetometer/accelerometer/gyroscope break-out, import drivers and
       # initialize lsm9ds0 and respective compass instance
-      from robotling_lib.sensors.compass import Compass
-      import robotling_lib.driver.lsm9ds0 as lsm9ds0
+      from robotling_lib.sensors import compass
+      from robotling_lib.driver import lsm9ds0
       self._LSM9DS0 = lsm9ds0.LSM9DS0(self._I2C)
-      self.Compass = Compass(self._LSM9DS0)
+      self.Compass = compass.Compass(self._LSM9DS0)
 
     if "compass_cmps12" in devices:
       # Very nice compass module with tilt-compensation built in
-      from robotling_lib.sensors.compass_cmps12 import Compass
-      self.Compass = Compass(self._I2C)
+      from robotling_lib.sensors import compass_cmps12
+      self.Compass = compass_cmps12.Compass(self._I2C)
 
     if "vl6180x" in devices:
       # Time-of-flight distance sensor
@@ -169,18 +171,18 @@ class Robotling(RobotlingBase):
 
     if "dotstar_feather" in devices:
       # DotStar array is mounted
-      from robotling_lib.driver.dotstar import DotStar
-      self._DS = DotStar(0,0, 6*12, auto_write=False, spi=self._SPI)
+      from robotling_lib.driver import dotstar
+      self._DS = dotstar.DotStar(0,0, 6*12, auto_write=False, spi=self._SPI)
       self._iDS = 0
       self._DS[0] = 0
       self._DS.show()
 
     if "amg88xx" in devices:
       # IR 8x8 thermal camera (AMG88XX) is mounted
-      import robotling_lib.driver.amg88xx as amg88xx
-      from robotling_lib.sensors.camera_thermal import Camera
+      from robotling_lib.driver import amg88xx
+      from robotling_lib.sensors import camera_thermal
       self._AMG88XX = amg88xx.AMG88XX(self._I2C)
-      self.Camera = Camera(self._AMG88XX)
+      self.Camera = camera_thermal.Camera(self._AMG88XX)
 
     if "wlan" in devices:
       # Connect to WLAN, if not already connected
@@ -216,7 +218,7 @@ class Robotling(RobotlingBase):
         deep sleep. After the given time, the controller reboots.
         (Works currently only for ESP32 and for robotling boards >= v1.2)
     """
-    if BOARD_VER >= 120 and platform.ID == platform.ENV_ESP32_UPY:
+    if BOARD_VER >= 120 and pf.ID == pf.ENV_ESP32_UPY:
       self.power5V.value = keep5V
       deepsleep(dur_s *1000)
 
@@ -225,7 +227,7 @@ class Robotling(RobotlingBase):
         light sleep. After the given time, the code excecution continues.
         (Works currently only for ESP32 and for robotling boards >= v1.2)
     """
-    if BOARD_VER >= 120 and platform.ID == platform.ENV_ESP32_UPY:
+    if BOARD_VER >= 120 and pf.ID == pf.ENV_ESP32_UPY:
       self.power5V.value = keep5V
       lightsleep(dur_s *1000)
       self.power5V.on()
