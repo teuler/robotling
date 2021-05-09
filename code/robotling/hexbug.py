@@ -85,7 +85,7 @@ class HexBug(Robotling):
     self.RangingSensor = []
     try:
       self.RangingSensor.append(self._VL6180X)
-      if not self.RangingSensor[0].isReady:
+      if not self.RangingSensor[0].is_ready:
         raise AttributeError
     except AttributeError:
       if cfg.IR_SCAN_SENSOR == 1:
@@ -105,7 +105,7 @@ class HexBug(Robotling):
       AInCh = AI_CH_IR_RANGING if isList else [cfg.AI_CH_IR_RANGING]
       for pin in AInCh:
         self.RangingSensor.append(GP2Y(self._MCP3208, pin))
-        self._MCP3208.channelMask |= 0x01 << pin
+        self._MCP3208.channel_mask |= 0x01 << pin
       self.nRangingSensor = len(self.RangingSensor)
     print("Using {0}x {1} as ranging sensor(s)"
           .format(self.nRangingSensor, self.RangingSensor[0].name))
@@ -163,18 +163,18 @@ class HexBug(Robotling):
       self.walkLoadFilter = TemporalFilter(5)
       self.turnLoadFilter = TemporalFilter(5)
       self._loadData      = array.array("i", [0]*2)
-      self._MCP3208.channelMask |= 0xC0
+      self._MCP3208.channel_mask |= 0xC0
 
     # If to use compass, initialize target heading
     if cfg.DO_WALK_STRAIGHT and not cfg.DO_FIND_LIGHT:
-      self.cpsTargetHead = self.Compass.getHeading()
+      self.cpsTargetHead = self.Compass.get_heading()
 
     # If "find light" behaviour is activated, activate the AI channels to which
     # the photodiodes are connected and create a filter to smooth difference
     # in light intensity readings (`lightDiff`)
     self.lightDiff = 0
     if cfg.DO_FIND_LIGHT:
-      self._MCP3208.channelMask |= 1 << cfg.AI_CH_LIGHT_R | 1 << cfg.AI_CH_LIGHT_L
+      self._MCP3208.channel_mask |= 1 << cfg.AI_CH_LIGHT_R | 1 << cfg.AI_CH_LIGHT_L
       self.LightDiffFilter = TemporalFilter(5, "i")
 
     # Flag that indicates when the robot should stop moving
@@ -210,7 +210,7 @@ class HexBug(Robotling):
     aid = self._MCP3208.data
 
     # Check if robot is tilted ...
-    ehpr = self.Compass.getHeading3D()
+    ehpr = self.Compass.get_heading_3d()
     pAv  = self.PitchFilter.mean(ehpr[2])
     rAv  = self.RollFilter.mean(ehpr[3])
     self.onHold = (abs(pAv) > cfg.PIRO_MAX_ANGLE) or (abs(rAv) > cfg.PIRO_MAX_ANGLE)
@@ -257,9 +257,9 @@ class HexBug(Robotling):
       if cfg.DO_FOLLOW_BLOB and self.Camera:
         mqttd[KEY_CAM_IR] = {
             KEY_SIZE:
-            (8,8), KEY_BLOBS: self.Camera.blobsRaw
+            (8,8), KEY_BLOBS: self.Camera.blobs_raw
           }
-        mqttd[KEY_CAM_IR].update({KEY_IMAGE: self.Camera.imageLinear})
+        mqttd[KEY_CAM_IR].update({KEY_IMAGE: self.Camera.image_linear})
       if len(self.debug) > 0:
         mqttd[KEY_DEBUG] = self.debug
         self.debug = []
@@ -432,7 +432,7 @@ class HexBug(Robotling):
 
       # If compass is used, set new target heading
       if cfg.DO_WALK_STRAIGHT and not cfg.DO_FIND_LIGHT:
-        self._targetHead = self.Compass.getHeading()
+        self._targetHead = self.Compass.get_heading()
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   def lookAtBlob(self, minBlobArea, minBlobProb):

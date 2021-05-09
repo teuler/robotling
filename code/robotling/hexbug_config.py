@@ -78,7 +78,7 @@ SPEED_BACK_DELAY = const(500)  # Duration for backing up (cliff)
 # Options, depending on board and sensor complement
 USE_LOAD_SENSING = const(1)    # Use AI channels #6,7 for load-sensing (> v1.1)
 USE_POWER_SHD    = const(1)    # Use ENAB_5V (voltage regulator off)   (> v1.1)
-SEND_TELEMETRY   = const(1)    # only w/ESP32
+SEND_TELEMETRY   = const(0)    # only w/ESP32
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # "Behaviours" and their parameters
