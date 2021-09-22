@@ -10,6 +10,9 @@
 
 <img align="right" width="320" src="https://github.com/teuler/robotling/blob/master/pictures/pic_board_1_2_a_sm.png"></img>
 
+* 2021-09-22
+  - New firmware based on MicroPython v1.17 (w/`ulab`)
+  - 
 * 2021-05-02
   - Some refactoring: Configuration parameters now clearly marked as such (`cfg.xxx`)
 
