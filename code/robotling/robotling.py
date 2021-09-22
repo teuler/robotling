@@ -4,7 +4,7 @@
 # robotling board.
 #
 # The MIT License (MIT)
-# Copyright (c) 2018-2020 Thomas Euler
+# Copyright (c) 2018-2021 Thomas Euler
 # 2018-09-13, v1
 # 2018-11-10, v1.1, Compatible to Boris Lovosevic's MicroPython ESP32 port
 # 2018-12-22, v1.2, Class `Robotling` now more restricted to the board-
@@ -132,7 +132,6 @@ class Robotling(RobotlingBase):
     self._I2C = I2CBus(freq=rb.I2C_FRQ, scl=rb.SCL, sda=rb.SDA, scan=True)
 
     # Reset potential "device" objects
-    gc.collect()
     self._devices = devices
     self._VL6180X = None
     self._DS = None
@@ -145,16 +144,20 @@ class Robotling(RobotlingBase):
     if "lsm303" in devices:
       # Magnetometer and accelerometer break-out, import drivers and
       # initialize lsm303 and respective compass instance
+      gc.collect()
       from robotling_lib.sensors import compass
       from robotling_lib.driver import lsm303
+      gc.collect()
       self._LSM303 = lsm303.LSM303(self._I2C)
       self.Compass = compass.Compass(self._LSM303)
 
     if "lsm9ds0" in devices:
       # Magnetometer/accelerometer/gyroscope break-out, import drivers and
       # initialize lsm9ds0 and respective compass instance
+      gc.collect()
       from robotling_lib.sensors import compass
       from robotling_lib.driver import lsm9ds0
+      gc.collect()
       self._LSM9DS0 = lsm9ds0.LSM9DS0(self._I2C)
       self.Compass = compass.Compass(self._LSM9DS0)
 
@@ -235,7 +238,7 @@ class Robotling(RobotlingBase):
   def powerDown(self):
     """ Switch off NeoPixel, motor driver, etc.
     """
-    self._motorDriver.setMotorSpeed()
+    self._motorDriver.set_motor_speed()
     super().powerDown()
 
   @property

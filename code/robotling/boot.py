@@ -31,4 +31,7 @@ try:
 except ImportError:
   pass
 
+import gc
+gc.collect()
+print("{0} of {1} bytes heap RAM used".format(gc.mem_alloc(), gc.mem_free()))
 # ----------------------------------------------------------------------------
