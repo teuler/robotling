@@ -54,8 +54,8 @@ DO_CH_DIST_SERVO = DIO0        # Digital-Out channel for distance sensor servo
 MIN_DIST_SERVO   = const(45)   # Limits of servo that holds the arm with the
 MAX_DIST_SERVO   = const(-45)  # .. IR distance sensor in [°]
 MIN_US_SERVO     = const(1200) # 1322 Minimum timing of servo in [us]
-MAX_US_SERVO     = const(2350) # Maximum timing of servo in [us]
-SCAN_DIST_SERVO  = const(-25)  # Angle of IR distance sensor arm
+MAX_US_SERVO     = const(2347) # Maximum timing of servo in [us]
+SCAN_DIST_SERVO  = const(-35)  # Angle of IR distance sensor arm
 
 # Period of timer that keeps sensor values updated, the NeoPixel pulsing,
 # and checks for tilt (in [ms])
@@ -77,7 +77,7 @@ SPEED_BACK_DELAY = const(500)  # Duration for backing up (cliff)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Options, depending on board and sensor complement
 USE_LOAD_SENSING = const(1)    # Use AI channels #6,7 for load-sensing (> v1.1)
-USE_POWER_SHD    = const(1)    # Use ENAB_5V (voltage regulator off)   (> v1.1)
+USE_POWER_SHD    = const(0)    # Use ENAB_5V (voltage regulator off)   (> v1.1)
 SEND_TELEMETRY   = const(0)    # only w/ESP32
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -121,7 +121,7 @@ HEAD_ADJUST_THR  = const(5)    # [°]
 # - Display             : "dotstar_feather"
 # - WLAN                : "wlan"
 # - Cameras             : "amg88xx"
-MORE_DEVICES     = ["lsm9ds0", "wlan"]
+MORE_DEVICES     = ["lsm9ds0"]
 
 # <==
 # pylint: enable=bad-whitespace
